@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Hệ Thống Quản Lý Xuất Vịt - Phù Sa Farm</title>
+
+  <meta name="apple-mobile-web-app-title" content="Phù Sa Farm">
+  <meta name="application-name" content="Phù Sa Farm">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#10b981">
+  
+  <link rel="manifest" href='data:application/manifest+json;charset=utf-8,%7B%0A%20%20%22name%22%3A%20%22Ph%C3%B9%20Sa%20Farm%22%2C%0A%20%20%22short_name%22%3A%20%22Ph%C3%B9%20Sa%22%2C%0A%20%20%22start_url%22%3A%20%22.%22%2C%0A%20%20%22display%22%3A%20%22standalone%22%2C%0A%20%20%22background_color%22%3A%20%22%23f0f4f8%22%2C%0A%20%20%22theme_color%22%3A%20%22%2310b981%22%2C%0A%20%20%22icons%22%3A%20%5B%0A%20%20%20%20%7B%0A%20%20%20%20%20%20%22src%22%3A%20%22https%3A%2F%2Flive.staticflickr.com%2F65535%2F55300817978_f977b99993.jpg%22%2C%0A%20%20%20%20%20%20%22sizes%22%3A%20%22192x192%22%2C%0A%20%20%20%20%20%20%22type%22%3A%20%22image%2Fjpeg%22%0A%20%20%20%20%7D%2C%0A%20%20%20%20%7B%0A%20%20%20%20%20%20%22src%22%3A%20%22https%3A%2F%2Flive.staticflickr.com%2F65535%2F55300817978_f977b99993.jpg%22%2C%0A%20%20%20%20%20%20%22sizes%22%3A%20%22512x512%22%2C%0A%20%20%20%20%20%20%22type%22%3A%20%22image%2Fjpeg%22%0A%20%20%20%20%7D%0A%20%20%5D%0A%7D'>
+  
+  <link rel="apple-touch-icon" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
+  <link rel="apple-touch-icon" sizes="152x152" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
+  <link rel="apple-touch-icon" sizes="167x167" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
+  
+  <link rel="icon" type="image/jpeg" sizes="192x192" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
+  <link rel="shortcut icon" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
+
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #f0f4f8; font-family: 'Inter', sans-serif; }
+    #app-frame { width: 100%; height: 100%; border: none; display: none; }
+    
+    /* --- MÀN HÌNH CHỜ KHỞI ĐỘNG (SPLASH SCREEN TRÀN VIỀN MOBILE) --- */
+    #appSplashScreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: url('https://live.staticflickr.com/65535/55338870733_2c3694c8f3_b.jpg') no-repeat center center;
+        background-size: cover;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        padding-bottom: 80px;
+        box-sizing: border-box;
+        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+    }
+    .splash-content { width: 100%; display: flex; flex-direction: column; align-items: center; }
+    .splash-logo { text-align: center; margin-bottom: 35vh; }
+    .splash-title {
+        font-size: 38px; font-weight: 800; color: #f59e0b; margin: 0;
+        text-shadow: 0 4px 8px rgba(0,0,0,0.7); letter-spacing: 2px;
+    }
+    .splash-subtitle {
+        font-size: 26px; font-weight: 700; color: #ffffff; margin: 5px 0 0 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+    }
+    .splash-tip {
+        color: #e2e8f0; font-size: 13px; text-align: center; max-width: 85%;
+        margin-bottom: 25px; line-height: 1.5; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        background: rgba(15, 23, 42, 0.65); padding: 8px 16px; border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .progress-container {
+        position: relative; width: 85%; max-width: 350px; height: 22px;
+        background: rgba(0, 0, 0, 0.6); border: 2px solid #64748b;
+        border-radius: 11px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+    }
+    .progress-bar-fill {
+        width: 0%; height: 100%;
+        background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+        border-radius: 9px; transition: width 0.1s linear; position: relative;
+    }
+    .progress-bar-fill::after {
+        content: '🦆'; position: absolute; right: -14px; top: 50%;
+        transform: translateY(-50%); font-size: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    }
+    .progress-text {
+        position: absolute; width: 100%; text-align: center; top: 50%; left: 0;
+        transform: translateY(-50%); color: #ffffff; font-size: 12px; font-weight: 800;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
+    }
+    .splash-version {
+        position: absolute; bottom: 15px; color: #cbd5e1; font-size: 11px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="appSplashScreen">
+    <div class="splash-content">
+      <div class="splash-logo">
+        <h1 class="splash-title">THỜI ĐẠI</h1>
+        <h2 class="splash-subtitle">PHÙ SA FARM</h2>
+      </div>
+      
+      <div class="splash-tip">
+        Tấn công dữ liệu? Hãy nghĩ kỹ nhé — hệ thống sẽ khóa an toàn nếu có thao tác trùng lặp.
+      </div>
+  
+      <div class="progress-container">
+        <div id="splashProgressBar" class="progress-bar-fill"></div>
+        <span id="splashProgressText" class="progress-text">0%</span>
+      </div>
+      
+      <div class="splash-version">Phiên bản 1.106.9_v2026</div>
+    </div>
+  </div>
+
+  <iframe id="app-frame" src="https://script.google.com/macros/s/AKfycbwzgDy1i1LOH86ipE93JZhpNdz828uY3Fn-_dUPKlCD8VNyG0Ji0aLNkzeb0SLBz1ur/exec"></iframe>
+
+  <script>
+    const progressBar = document.getElementById('splashProgressBar');
+    const progressText = document.getElementById('splashProgressText');
+    const splashScreen = document.getElementById('appSplashScreen');
+    const appFrame = document.getElementById('app-frame');
+    
+    let currentPercent = 0;
+    
+    // Tự động chạy giả lập thanh tiến trình lên mức 85% trong lúc chờ GAS tải dữ liệu
+    const interval = setInterval(() => {
+      if (currentPercent < 85) {
+        currentPercent += Math.floor(Math.random() * 3) + 1; 
+        if (currentPercent > 85) currentPercent = 85;
+        
+        progressBar.style.width = currentPercent + '%';
+        progressText.innerText = currentPercent + '%';
+      }
+    }, 100);
+
+    // LẮNG NGHE TÍN HIỆU TỪ GOOGLE APPS SCRIPT
+    window.addEventListener('message', function(event) {
+        // Nếu nhận đúng tín hiệu 'APP_READY' từ App bên trong
+        if (event.data && event.data.type === 'APP_READY') {
+            finishLoading();
+        }
+    });
+
+    // Hàm kết thúc Loading
+    function finishLoading() {
+      clearInterval(interval);
+      
+      // Ép thanh tiến trình nhảy vọt lên 100%
+      progressBar.style.width = '100%';
+      progressText.innerText = '100%';
+      
+      // Chờ 300ms để hiệu ứng thanh kéo dài mượt mà, sau đó ẩn màn hình chờ
+      setTimeout(() => {
+        splashScreen.style.opacity = '0';
+        splashScreen.style.visibility = 'hidden';
+        appFrame.style.display = 'block'; // Mở Iframe lên
+        
+        // Dọn dẹp DOM
+        setTimeout(() => { splashScreen.remove(); }, 500);
+      }, 300);
+    }
+  </script>
+</body>
+</html>
