@@ -1,0 +1,54 @@
+<div id="historyView" class="view-container">
+  
+  <div class="app-header" style="max-width: 1200px; margin: 0 auto 25px auto; padding: 0 15px; text-align: center;">
+    <h2 id="historyHeaderTenDot" class="history-title">Đang tải lịch sử...</h2>
+  </div>
+  
+  <div class="main-wrapper">
+    <div class="input-section">
+      <div class="card">
+        <h3>Thống Kê Đợt Cũ</h3>
+        <div class="stat-row"><span class="stat-label">Tổng số ký gốc:</span><span class="stat-value" id="hs_totalKg">0 kg</span></div>
+        <div class="stat-row"><span class="stat-label">Lần cân:</span><span class="stat-value" id="hs_lanCan" style="color: #1877f2;">0 lần</span></div>
+        <div class="stat-row"><span class="stat-label">Tổng số sọt:</span><span class="stat-value" id="hs_totalSot">0 sọt</span></div>
+        <div class="stat-row"><span class="stat-label">Tổng số ký thực tế:</span><span class="stat-value" id="hs_actualKg" style="color: var(--danger);">0 kg</span></div>
+      </div>
+
+      <div class="card">
+        <h3>Thành Tiền</h3>
+        <div class="stat-row">
+          <span class="stat-label">Đơn giá lịch sử (đ/kg):</span>
+          <div class="price-display">
+            <span id="hs_donGia" style="font-weight: bold; font-size: 16px;">0 đ</span>
+            <button id="btnEditHistoryPrice" class="btn-edit history-action-col" onclick="promptEditHistoryPrice()" style="display: none; margin-left: 10px;">Sửa</button>
+          </div>
+        </div>
+        <div class="stat-row" style="margin-top: 5px;">
+          <span class="stat-label">Tổng tiền đợt này:</span>
+          <span class="stat-value" id="hs_tongTien" style="color: #e65100; font-size: 20px;">0 đ</span>
+        </div>
+      </div>
+      
+      <div id="historyLoader" class="loading-overlay">Đang xử lý dữ liệu lịch sử...</div>
+      <div id="historyErrorBox" class="error-msg"></div>
+    </div>
+
+    <div class="data-section">
+      <div class="card">
+        <h3>Danh Sách Chi Tiết Đã Cân</h3>
+        <table id="historyDataTable">
+          <thead>
+            <tr><th>Lần cân</th><th>Số sọt</th><th>Số ký</th><th>Tích lũy</th><th class="history-action-col" style="display: none;">Hành động</th></tr>
+          </thead>
+          <tbody id="historyTableBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-action-bar">
+    <button type="button" class="btn-action-back" onclick="goBackToLanding()">Quay lại</button>
+    <button type="button" class="btn-action-edit" id="btnHistoryEditToggle" onclick="toggleHistoryEditMode()">Sửa</button>
+  </div>
+</div>

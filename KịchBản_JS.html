@@ -1,0 +1,650 @@
+<script>
+  let state = {
+    status: 'LANDING', tenDot: '', donGia: 0, startRow: null, actualKg: 0, tongTien: 0
+  };
+  const STORAGE_KEY = 'PhuSaFarm_SessionState';
+  const MERCHANT_KEY = 'PhuSaFarm_RecentMerchants'; // Khóa lưu trữ danh sách lái buôn cục bộ
+  
+  let isSubmitting = false; // Bổ sung cờ chống Double-Submit toàn cục
+  let isHistoryEditMode = false; // Trạng thái khóa an toàn trang lịch sử (View/Edit Mode)
+
+  // =======================================================================
+  // TỐI ƯU CROSS-DOMAIN: HÀM BẮN TÍN HIỆU CHO GITHUB BIẾT APP ĐÃ SẴN SÀNG
+  // =======================================================================
+  function notifyAppReady() {
+    try {
+      // Gửi một thông điệp an toàn ra ngoài cùng (Lớp vỏ Github)
+      // SỬA LỖI: Dùng window.top thay vì window.parent để xuyên qua 2 lớp iframe của Google
+      window.top.postMessage({ type: 'APP_READY' }, '*');
+    } catch(e) {
+      console.log("Không thể gửi tín hiệu ra ngoài: ", e);
+    }
+  }
+
+  // TỐI ƯU UI/UX: Phát ra tiếng Bíp bằng Web Audio API (Tạo sóng âm trực tiếp, siêu nhẹ, không lag)
+  function playBeep() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.type = 'sine'; // Sóng sin cho âm thanh trong trẻo
+      oscillator.frequency.value = 850; // Tần số âm thanh thanh cao (Hz)
+      
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Hiệu ứng nhỏ dần âm lượng cực nhanh để tiếng bíp dứt khoát
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.1); // Kéo dài trong 0.1 giây
+    } catch (e) { 
+      console.log("Audio Feedback không hỗ trợ hoặc bị chặn: ", e);
+    }
+  }
+
+  // TỐI ƯU TIỆN ÍCH: Lưu thương lái vào LocalStorage di động (Tối đa 20 người gần nhất)
+  function saveMerchantToHistory(name) {
+    if (!name) return;
+    let merchants = [];
+    try {
+      merchants = JSON.parse(localStorage.getItem(MERCHANT_KEY)) || [];
+    } catch (e) {
+      merchants = [];
+    }
+    // Lọc bỏ tên trùng cũ nếu có
+    merchants = merchants.filter(m => m !== name);
+    // Đẩy tên mới lên đầu danh sách gợi ý
+    merchants.unshift(name);
+    // Giới hạn lưu tối đa 20 lái buôn thân thiết gần nhất
+    if (merchants.length > 20) {
+      merchants = merchants.slice(0, 20);
+    }
+    localStorage.setItem(MERCHANT_KEY, JSON.stringify(merchants));
+  }
+
+  // TỐI ƯU TIỆN ÍCH: Đổ dữ liệu lịch sử thương lái vào thẻ datalist để tự động gợi ý
+  function initMerchantSuggestions() {
+    let merchants = [];
+    try {
+      merchants = JSON.parse(localStorage.getItem(MERCHANT_KEY)) || [];
+    } catch (e) {
+      merchants = [];
+    }
+    const datalist = document.getElementById('merchantList');
+    if (datalist) {
+      datalist.innerHTML = merchants.map(m => `<option value="${m}">`).join('');
+    }
+  }
+
+  // Định dạng số chung chuẩn Việt Nam, loại bỏ Regex cũ (tối ưu UI/UX)
+  function formatNumber(num) {
+    if (isNaN(num) || num === null || num === "") return "0";
+    return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(Number(num));
+  }
+
+  // Chuẩn hóa số ký/sọt gửi lên Server (vẫn giữ nguyên Regex vì input cân nặng có thể có phẩy/chấm linh hoạt)
+  function normalizeNumber(val) {
+    if (!val) return "";
+    let n = val.toString().replace(/,/g, '.').replace(/[^0-9.]/g, '');
+    let parts = n.split('.');
+    if (parts.length > 2) n = parts[0] + '.' + parts.slice(1).join('');
+    return n;
+  }
+
+  // Bóc tách đơn giá tiền tệ chuẩn xác hơn, bỏ qua mọi ký tự phân cách
+  function parseCurrency(val) {
+    if (!val) return 0;
+    let n = val.toString().replace(/[^0-9]/g, '');
+    return parseInt(n, 10) || 0;
+  }
+
+  // Tự động thêm dấu chấm hàng nghìn khi gõ, mượt mà hơn Regex
+  document.getElementById('ld_donGia').addEventListener('input', function() { formatCurrencyInput(this); });
+  document.getElementById('md_thucNhan').addEventListener('input', function() { formatCurrencyInput(this); });
+  
+  function formatCurrencyInput(el) {
+    let val = el.value.replace(/[^0-9]/g, '');
+    if (val === '') {
+      el.value = '';
+      return;
+    }
+    // Sử dụng API Intl để định dạng dấu chấm ngăn cách hàng nghìn chuẩn 100%
+    el.value = new Intl.NumberFormat('vi-VN').format(parseInt(val, 10));
+  }
+
+  // Chống lỗi chạy ngầm trên trình duyệt Zalo/Viber
+  function isInAppBrowser() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    return (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf("Zalo") > -1) || 
+           (ua.indexOf("Viber") > -1) || (ua.indexOf("WhatsApp") > -1) || (ua.includes("wv"));
+  }
+
+  function copyAppLink() {
+    const tempInput = document.createElement("input"); tempInput.value = window.location.href;
+    document.body.appendChild(tempInput); tempInput.select(); tempInput.setSelectionRange(0, 99999);
+    try { document.execCommand("copy"); document.getElementById("copyBtn").innerText = "✅ ĐÃ SAO CHÉP !";
+    } catch (err) {}
+    document.body.removeChild(tempInput);
+  }
+
+  // KHỞI ĐỘNG ỨNG DỤNG
+  window.addEventListener('DOMContentLoaded', () => {
+    if (isInAppBrowser()) {
+      document.getElementById('inAppWarning').style.display = 'flex'; return;
+    }
+
+    const savedState = localStorage.getItem(STORAGE_KEY);
+    if (savedState) { state = JSON.parse(savedState); }
+    
+    initMerchantSuggestions(); // Khởi tạo danh sách gợi ý thương lái khi mở app
+    renderView();
+
+    // Điểm chốt số 1: Nếu App mở lên ở màn hình chờ (Landing) mà không phải load data Sheet -> Báo Ready ngay lập tức!
+    if (state.status === 'LANDING' || state.startRow === null) {
+      notifyAppReady();
+    }
+  });
+
+  // ---------------- HÀM SPA - ĐIỀU HƯỚNG 3 MÀN HÌNH ĐỘC LẬP ----------------
+  function renderView() {
+    const landingView = document.getElementById('landingView');
+    const mainView = document.getElementById('mainView');
+    const historyView = document.getElementById('historyView');
+
+    if (state.status === 'LANDING') {
+      if(landingView) landingView.classList.add('active');
+      if(mainView) mainView.classList.remove('active');
+      if(historyView) historyView.classList.remove('active');
+    } 
+    else if (state.status === 'WEIGHING') {
+      if(landingView) landingView.classList.remove('active');
+      if(mainView) mainView.classList.add('active');
+      if(historyView) historyView.classList.remove('active');
+      
+      document.getElementById('headerTenDot').innerText = state.tenDot === '' ? "Đang tải dữ liệu đợt..." : state.tenDot;
+      document.getElementById('st_donGia').innerText = formatNumber(state.donGia) + " đ";
+      calculateMoneyLocal();
+      
+      if (state.startRow !== null) {
+        setLoading(true, 'Đang khôi phục dữ liệu...');
+        google.script.run
+          .withSuccessHandler((data) => { 
+            updateMainUI(data); 
+            setLoading(false); 
+            notifyAppReady(); // Điểm chốt số 2: Nạp xong dữ liệu cân -> Báo Ready!
+          })
+          .withFailureHandler((err) => { 
+            showError("Lỗi khôi phục: " + err.message); 
+            setLoading(false); 
+            notifyAppReady(); // Vẫn báo Ready để tắt Splash Screen, mở ra cho user thấy bảng báo lỗi
+          })
+          .getBatchData(state.startRow);
+      }
+    } 
+    else if (state.status === 'HISTORY') {
+      if(landingView) landingView.classList.remove('active');
+      if(mainView) mainView.classList.remove('active');
+      if(historyView) historyView.classList.add('active'); // Kích hoạt trang lịch sử riêng biệt
+      
+      // TỐI ƯU CƠ CHẾ AN TOÀN: Ép trạng thái về mặc định (Khóa bảng) mỗi khi mở tải lịch sử
+      isHistoryEditMode = false;
+      historyView.classList.remove('edit-mode-active');
+      const btnToggle = document.getElementById('btnHistoryEditToggle');
+      if (btnToggle) {
+          btnToggle.innerText = 'Sửa';
+          btnToggle.style.color = '';
+      }
+      
+      document.getElementById('historyHeaderTenDot').innerText = "Đang tải dữ liệu lịch sử...";
+      if (state.startRow !== null) {
+        setHistoryLoading(true, 'Đang tải dữ liệu đợt cũ...');
+        google.script.run
+          .withSuccessHandler((data) => { 
+            updateHistoryUI(data); 
+            setHistoryLoading(false); 
+            notifyAppReady(); // Điểm chốt số 3: Nạp xong dữ liệu lịch sử -> Báo Ready!
+          })
+          .withFailureHandler((err) => { 
+            showHistoryError("Lỗi tải lịch sử: " + err.message); 
+            setHistoryLoading(false); 
+            notifyAppReady(); // Vẫn báo Ready để hiển thị giao diện báo lỗi
+          })
+          .getBatchData(state.startRow);
+      }
+    }
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  // ---------------- NÚT KHỞI TẠO ĐỢT MỚI ----------------
+  function startNewBatch() {
+    const name = document.getElementById('ld_tenDot').value.trim();
+    const priceStr = document.getElementById('ld_donGia').value;
+    
+    // Yêu cầu nhập Tên và Đơn giá (đã bỏ Chuồng)
+    if(!name || !priceStr) return alert("Vui lòng nhập tên Đợt xuất và Đơn giá!");
+    state.tenDot = name;
+    state.donGia = parseCurrency(priceStr); 
+    state.status = 'WEIGHING';
+    state.startRow = null; 
+    state.actualKg = 0;
+    state.tongTien = 0;
+    document.getElementById('st_totalKg').innerText = "0 kg";
+    document.getElementById('st_lanCan').innerText = "0 lần";
+    document.getElementById('st_totalSot').innerText = "0 sọt";
+    document.getElementById('st_actualKg').innerText = "0 kg";
+    document.getElementById('st_tongTien').innerText = "0 đ";
+    document.getElementById('soSot').value = "2"; 
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888;">Chưa có dữ liệu cân...</td></tr>';
+    
+    saveState();
+    renderView();
+  }
+
+  // ---------------- NÚT XEM LẠI ĐỢT GẦN NHẤT (CHUYỂN SANG TRANG LỊCH SỬ) ----------------
+  function loadLastBatch() {
+    const btn = document.getElementById('btnLoadLast');
+    btn.innerHTML = '<span><i class="bi bi-hourglass-split me-2"></i>Đang tìm...</span>';
+    btn.disabled = true;
+    google.script.run
+      .withSuccessHandler((rowNum) => {
+        if (rowNum === null) {
+          alert("Chưa có dữ liệu đợt xuất nào trong máy chủ!");
+          btn.innerHTML = '<span><i class="bi bi-arrow-counterclockwise me-2"></i>Xem lại lần cân gần nhất</span>';
+          btn.disabled = false;
+        } else {
+          state.status = 'HISTORY'; // Đổi trạng thái sang màn hình LỊCH SỬ thay vì cân vịt
+          state.startRow = rowNum;
+          state.tenDot = ""; 
+          saveState();
+          renderView(); 
+          
+          btn.innerHTML = '<span><i class="bi bi-arrow-counterclockwise me-2"></i>Xem lại lần cân gần nhất</span>';
+          btn.disabled = false;
+      
+        }
+      })
+      .withFailureHandler((err) => {
+        alert("Lỗi tải dữ liệu: " + err.message);
+        btn.innerHTML = '<span><i class="bi bi-arrow-counterclockwise me-2"></i>Xem lại lần cân gần nhất</span>';
+        btn.disabled = false;
+      })
+      .getLastBatchStartRow();
+  }
+
+  // ---------------- LOGIC CÂN VÀ NHẬP SỐ (TRANG CHÍNH) ----------------
+  document.getElementById('soKy').addEventListener("keypress", (e) => { if (e.key === "Enter") doSubmitWeight(); });
+  function doSubmitWeight() {
+    if (isSubmitting) return; // Khóa chặn thao tác đa luồng nhấp đúp (Double-Submit)
+
+    const rawKy = document.getElementById('soKy').value;
+    const soSotVal = document.getElementById('soSot').value;
+    const cleanKy = normalizeNumber(rawKy);
+    
+    if (!cleanKy) return alert("Vui lòng nhập số ký!");
+
+    isSubmitting = true; // Bật cờ trạng thái xử lý
+    setLoading(true); 
+    hideError();
+    if (state.startRow === null) {
+      google.script.run
+        .withSuccessHandler((data) => {
+          state.startRow = data.startRow; 
+          saveState();
+          updateMainUI(data);
+          resetInput();
+        })
+        .withFailureHandler(handleNetError)
+        .addFirstData(state.tenDot, state.donGia, cleanKy, soSotVal);
+    } 
+    else {
+      google.script.run
+        .withSuccessHandler((data) => { 
+          updateMainUI(data); 
+          resetInput(); 
+        })
+        .withFailureHandler(handleNetError)
+        .addNextData(state.startRow, cleanKy, soSotVal);
+    }
+  }
+
+  function updateMainUI(data) {
+    if(!data) return;
+    
+    playBeep(); // BẮN PHẢN HỒI: Phát âm thanh bíp báo hiệu lưu dữ liệu vật lý thành công xuống Sheet
+
+    // TỐI ƯU UI/UX: Luồng chèn thêm 1 dòng (Tiết kiệm DOM, chống chớp nháy bảng)
+    if (data.isPartial) {
+      state.actualKg = data.summary.actualKg;
+      saveState();
+
+      // Cập nhật thống kê nhanh
+      document.getElementById('st_totalKg').innerText = formatNumber(data.summary.totalKg) + " kg";
+      document.getElementById('st_lanCan').innerText = formatNumber(data.summary.lanCan) + " lần";
+      document.getElementById('st_totalSot').innerText = formatNumber(data.summary.totalSot) + " sọt";
+      document.getElementById('st_actualKg').innerText = formatNumber(state.actualKg) + " kg";
+      
+      calculateMoneyLocal();
+      const tbody = document.getElementById('tableBody');
+      // Dọn sạch dòng chữ báo "Chưa có dữ liệu" nếu là sọt thứ nhất
+      if (tbody.innerHTML.includes('Chưa có dữ liệu cân')) {
+        tbody.innerHTML = '';
+      }
+
+      // Render dòng sọt vừa cân và đẩy lên đầu tiên
+      const row = data.newRow;
+      const newRowHTML = `
+        <tr>
+          <td>${row.lanCan}</td>
+          <td style="color:#059669; font-weight:bold">${row.soSot}</td>
+          <td style="font-weight:bold">${formatNumber(row.soKy)}</td>
+          <td style="color:#64748b">${formatNumber(row.tichLuy)}</td>
+          <td><button class="btn-edit" onclick="doEditWeight(${row.rowNum}, '${row.soKy}', '${row.soSot}')">Sửa</button></td>
+        </tr>
+      `;
+      tbody.insertAdjacentHTML('afterbegin', newRowHTML);
+    } 
+    // Luồng Render lại toàn bộ bảng (Sử dụng khi tải lại trang hoặc Edit dòng cũ)
+    else {
+      state.tenDot = data.tenDot;
+      state.donGia = data.donGia;
+      state.actualKg = data.summary.actualKg;
+      saveState();
+
+      document.getElementById('headerTenDot').innerText = state.tenDot;
+      document.getElementById('st_totalKg').innerText = formatNumber(data.summary.totalKg) + " kg";
+      document.getElementById('st_lanCan').innerText = formatNumber(data.summary.lanCan) + " lần";
+      document.getElementById('st_totalSot').innerText = formatNumber(data.summary.totalSot) + " sọt";
+      document.getElementById('st_actualKg').innerText = formatNumber(state.actualKg) + " kg";
+      document.getElementById('st_donGia').innerText = formatNumber(state.donGia) + " đ";
+      
+      calculateMoneyLocal();
+      
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = data.rows.map(row => `
+        <tr>
+          <td>${row.lanCan}</td>
+          <td style="color:#059669; font-weight:bold">${row.soSot}</td>
+          <td style="font-weight:bold">${formatNumber(row.soKy)}</td>
+          <td style="color:#64748b">${formatNumber(row.tichLuy)}</td>
+          <td><button class="btn-edit" onclick="doEditWeight(${row.rowNum}, '${row.soKy}', '${row.soSot}')">Sửa</button></td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  function calculateMoneyLocal() {
+    // Tối ưu kế toán: Loại bỏ triệt để sai số làm tròn phẩy động trong JS
+    state.tongTien = Math.round((state.donGia * Math.round(state.actualKg * 100)) / 100);
+    document.getElementById('st_tongTien').innerText = formatNumber(state.tongTien) + " đ";
+  }
+
+  // ---------------- LOGIC CHỈNH SỬA (TRANG CHÍNH) ----------------
+  function promptEditPrice() {
+    const rawVal = prompt("Nhập Đơn Giá Mới (đ/kg):", formatNumber(state.donGia));
+    if (rawVal !== null && rawVal !== "") {
+      const cleanVal = parseCurrency(rawVal);
+      if(!isNaN(cleanVal) && cleanVal > 0) {
+        state.donGia = cleanVal;
+        saveState();
+        document.getElementById('st_donGia').innerText = formatNumber(cleanVal) + " đ";
+        calculateMoneyLocal();
+        if(state.startRow !== null) {
+          google.script.run.updatePrice(state.startRow, cleanVal);
+        }
+      }
+    }
+  }
+
+  function doEditWeight(rowNum, currentKy, currentSot) {
+    const newKy = prompt("Chỉnh sửa SỐ KÝ (kg) cho lần cân này:", currentKy);
+    if (newKy !== null && newKy !== "") {
+      const cleanKy = normalizeNumber(newKy);
+      if(cleanKy !== "") {
+        const newSot = prompt("Chỉnh sửa SỐ SỌT cho lần cân này:", currentSot);
+        if (newSot !== null && newSot !== "") {
+           setLoading(true);
+           hideError();
+           google.script.run
+             .withSuccessHandler((data) => { updateMainUI(data); setLoading(false); })
+             .withFailureHandler(handleNetError)
+             .editData(rowNum, cleanKy, newSot, state.startRow);
+        }
+      }
+    }
+  }
+
+  // ---------------- LOGIC POPUP KẾT TOÁN ----------------
+  function openCheckoutModal() {
+    document.getElementById('md_tenDot').innerText = state.tenDot;
+    document.getElementById('md_lancan').innerText = document.getElementById('st_lanCan').innerText;
+    document.getElementById('md_sot').innerText = document.getElementById('st_totalSot').innerText;
+    document.getElementById('md_ky').innerText = formatNumber(state.actualKg);
+    document.getElementById('md_tien').innerText = formatNumber(state.tongTien);
+    
+    document.getElementById('md_thucNhan').value = formatNumber(state.tongTien);
+    document.getElementById('checkoutModal').style.display = 'flex';
+  }
+
+  function closeCheckoutModal() {
+    document.getElementById('checkoutModal').style.display = 'none';
+  }
+
+  // ---------------- KẾT TOÁN THÀNH CÔNG VÀ LƯU LẠI LỊCH SỬ THƯƠNG LÁI ----------------
+  function confirmCheckout() {
+    if (state.startRow === null) {
+       completeAndReset();
+       return;
+    }
+    
+    const rawThucNhan = document.getElementById('md_thucNhan').value;
+    const thucNhan = parseCurrency(rawThucNhan);
+
+    document.getElementById('checkoutLoader').style.display = 'block';
+    document.getElementById('btnCancelCheckout').disabled = true;
+    document.getElementById('btnConfirmCheckout').disabled = true;
+
+    google.script.run
+      .withSuccessHandler(() => { completeAndReset(); })
+      .withFailureHandler((err) => { 
+        alert("Lỗi kết toán: " + err.message); 
+        document.getElementById('checkoutLoader').style.display = 'none';
+        document.getElementById('btnCancelCheckout').disabled = false;
+        document.getElementById('btnConfirmCheckout').disabled = false;
+      })
+      .checkoutBatch(state.startRow, state.tongTien, thucNhan);
+  }
+
+  function completeAndReset() {
+    // Ngầm lưu tên Lái buôn này vào lịch sử điện thoại trước khi reset bộ nhớ ứng dụng
+    if (state.tenDot) {
+      saveMerchantToHistory(state.tenDot);
+    }
+
+    localStorage.removeItem(STORAGE_KEY);
+    state = { status: 'LANDING', tenDot: '', donGia: 0, startRow: null, actualKg: 0, tongTien: 0 };
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888;">Chưa có dữ liệu cân...</td></tr>';
+    document.getElementById('st_totalKg').innerText = "0 kg";
+    document.getElementById('st_lanCan').innerText = "0 lần";
+    document.getElementById('st_totalSot').innerText = "0 sọt";
+    document.getElementById('st_actualKg').innerText = "0 kg";
+    document.getElementById('st_tongTien').innerText = "0 đ";
+    document.getElementById('st_donGia').innerText = "0 đ";
+    document.getElementById('soSot').value = "2";
+    document.getElementById('ld_tenDot').value = '';
+    document.getElementById('ld_donGia').value = '';
+    document.getElementById('md_thucNhan').value = ''; 
+    
+    document.getElementById('checkoutLoader').style.display = 'none';
+    document.getElementById('btnCancelCheckout').disabled = false;
+    document.getElementById('btnConfirmCheckout').disabled = false;
+    closeCheckoutModal();
+    
+    initMerchantSuggestions(); // Làm mới danh sách gợi ý đổ vào datalist cho đợt tiếp theo
+    renderView();
+  }
+
+  // Utilities Trang Chính
+  function resetInput() {
+    const kyInput = document.getElementById('soKy');
+    kyInput.value = "";
+    setLoading(false);
+    
+    // Tối ưu UI/UX Mobile: Delay 100ms trước khi focus để chống giật bàn phím ảo
+    setTimeout(() => {
+      kyInput.focus();
+    }, 100);
+  }
+  
+  function setLoading(isLoad, msg = 'Đang xử lý...') {
+    document.getElementById('btnSubmit').disabled = isLoad;
+    const loader = document.getElementById('loader');
+    if(loader) {
+      loader.innerText = msg;
+      loader.style.display = isLoad ? 'block' : 'none';
+    }
+    
+    // Tự động tắt cờ trạng thái xử lý khi tiến trình tải đã kết thúc
+    if (!isLoad) isSubmitting = false;
+  }
+  
+  function handleNetError(err) { showError("Lỗi kết nối: " + err.message); setLoading(false);
+  }
+  
+  function showError(msg) {
+    const box = document.getElementById('errorBox'); box.innerText = msg; box.style.display = 'block';
+  }
+  
+  function hideError() { document.getElementById('errorBox').style.display = 'none';
+  }
+
+  // ---------------- CÁC HÀM XỬ LÝ RIÊNG CHO MÀN HÌNH LỊCH SỬ ----------------
+  
+  // TỐI ƯU CƠ CHẾ AN TOÀN: Hàm bật/tắt chế độ khóa bảng (View/Edit Mode)
+  function toggleHistoryEditMode() {
+      const historyView = document.getElementById('historyView');
+      const btnToggle = document.getElementById('btnHistoryEditToggle');
+      
+      isHistoryEditMode = !isHistoryEditMode; // Đảo ngược trạng thái khóa
+      
+      if (isHistoryEditMode) {
+          // BẬT CHẾ ĐỘ SỬA: Thêm class để CSS kích hoạt hiển thị các cột hành động
+          historyView.classList.add('edit-mode-active');
+          btnToggle.innerText = 'Xong';
+          btnToggle.style.color = '#e65100'; // Đổi màu cam nhấn mạnh đang mở khóa
+      } else {
+          // TẮT CHẾ ĐỘ SỬA: Xóa class để khóa an toàn giao diện lại
+          historyView.classList.remove('edit-mode-active');
+          btnToggle.innerText = 'Sửa';
+          btnToggle.style.color = ''; // Trả về màu mặc định
+      }
+  }
+
+  // Hàm hiển thị dữ liệu lên trang lịch sử độc lập
+  function updateHistoryUI(data) {
+    if(!data) return;
+    state.tenDot = data.tenDot; 
+    state.donGia = data.donGia;
+    state.actualKg = data.summary.actualKg;
+    saveState();
+    
+    document.getElementById('historyHeaderTenDot').innerText = state.tenDot;
+    document.getElementById('hs_totalKg').innerText = formatNumber(data.summary.totalKg) + " kg";
+    document.getElementById('hs_lanCan').innerText = formatNumber(data.summary.lanCan) + " lần";
+    document.getElementById('hs_totalSot').innerText = formatNumber(data.summary.totalSot) + " sọt";
+    document.getElementById('hs_actualKg').innerText = formatNumber(state.actualKg) + " kg";
+    document.getElementById('hs_donGia').innerText = formatNumber(state.donGia) + " đ";
+    
+    let lichSuTongTien = Math.round((state.donGia * Math.round(state.actualKg * 100)) / 100);
+    document.getElementById('hs_tongTien').innerText = formatNumber(lichSuTongTien) + " đ";
+    
+    const tbody = document.getElementById('historyTableBody');
+    tbody.innerHTML = data.rows.map(row => `
+      <tr>
+        <td>${row.lanCan}</td>
+        <td style="color:#059669; font-weight:bold">${row.soSot}</td>
+        <td style="font-weight:bold">${formatNumber(row.soKy)}</td>
+        <td style="color:#64748b">${formatNumber(row.tichLuy)}</td>
+        <td class="history-action-col" style="display: none;">
+           <button class="btn-edit" onclick="doEditWeightInHistory(${row.rowNum}, '${row.soKy}', '${row.soSot}')">Sửa</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // Hàm sửa nhanh Đơn Giá ngay tại trang Lịch sử
+  function promptEditHistoryPrice() {
+    const rawVal = prompt("Nhập Đơn Giá Mới cho lịch sử đợt này (đ/kg):", formatNumber(state.donGia));
+    if (rawVal !== null && rawVal !== "") {
+      const cleanVal = parseCurrency(rawVal);
+      if(!isNaN(cleanVal) && cleanVal > 0) {
+        state.donGia = cleanVal;
+        saveState();
+        // Cập nhật giao diện cục bộ cực nhanh
+        document.getElementById('hs_donGia').innerText = formatNumber(cleanVal) + " đ";
+        let lichSuTongTien = Math.round((state.donGia * Math.round(state.actualKg * 100)) / 100);
+        document.getElementById('hs_tongTien').innerText = formatNumber(lichSuTongTien) + " đ";
+        // Bắn lệnh cập nhật ngầm lên Sheet
+        if(state.startRow !== null) {
+          google.script.run.updatePrice(state.startRow, cleanVal);
+        }
+      }
+    }
+  }
+
+  // Chỉnh sửa số ký/sọt ngay tại trang lịch sử
+  function doEditWeightInHistory(rowNum, currentKy, currentSot) {
+    const newKy = prompt("Chỉnh sửa SỐ KÝ (kg):", currentKy);
+    if (newKy !== null && newKy !== "") {
+      const cleanKy = normalizeNumber(newKy);
+      if(cleanKy !== "") {
+        const newSot = prompt("Chỉnh sửa SỐ SỌT:", currentSot);
+        if (newSot !== null && newSot !== "") {
+           setHistoryLoading(true);
+           hideHistoryError();
+           google.script.run
+             .withSuccessHandler((data) => { updateHistoryUI(data); setHistoryLoading(false); })
+             .withFailureHandler((err) => { showHistoryError("Lỗi chỉnh sửa: " + err.message); setHistoryLoading(false); })
+             .editData(rowNum, cleanKy, newSot, state.startRow);
+        }
+      }
+    }
+  }
+
+  // Nút bấm thoát trang lịch sử trở về trang chủ
+  function goBackToLanding() {
+    // Ép an toàn trước khi thoát
+    isHistoryEditMode = false;
+    document.getElementById('historyView').classList.remove('edit-mode-active');
+    const btnToggle = document.getElementById('btnHistoryEditToggle');
+    if (btnToggle) { btnToggle.innerText = 'Sửa'; btnToggle.style.color = ''; }
+
+    localStorage.removeItem(STORAGE_KEY);
+    state = { status: 'LANDING', tenDot: '', donGia: 0, startRow: null, actualKg: 0, tongTien: 0 };
+    saveState();
+    
+    initMerchantSuggestions(); // Làm mới gợi ý thương lái khi quay lại trang chủ
+    renderView();
+  }
+
+  // Utilities thông báo trạng thái trên trang lịch sử
+  function setHistoryLoading(isLoad, msg = 'Đang xử lý...') {
+    const loader = document.getElementById('historyLoader');
+    if(loader) {
+      loader.innerText = msg;
+      loader.style.display = isLoad ? 'block' : 'none';
+    }
+  }
+  function showHistoryError(msg) {
+    const box = document.getElementById('historyErrorBox');
+    if(box) { box.innerText = msg;
+    box.style.display = 'block'; }
+  }
+  function hideHistoryError() { 
+    const box = document.getElementById('historyErrorBox');
+    if(box) box.style.display = 'none'; 
+  }
+</script>

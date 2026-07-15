@@ -1,0 +1,85 @@
+<div id="mainView" class="view-container">
+  <div class="app-header">
+    <h2 id="headerTenDot" style="color: var(--primary-color); margin: 0; text-align: center; width: 100%;">Đang tải dữ liệu đợt...</h2>
+  </div>
+  
+  <div class="main-wrapper">
+    <div class="input-section">
+      <div class="card">
+        <h3>Nhập Số Ký</h3>
+        <label>Số sọt:</label>
+        <input type="number" id="soSot" value="2" min="1" step="1" class="form-control-main">
+        <label>Số ký (kg):</label>
+        <input type="text" inputmode="decimal" id="soKy" placeholder="Gõ số và nhấn Enter..." class="form-control-main">
+        <button id="btnSubmit" class="btn-main" onclick="doSubmitWeight()">Nhập Dữ Liệu</button>
+        <div id="loader" class="loading-overlay">Đang xử lý dữ liệu...</div>
+        <div id="errorBox" class="error-msg"></div>
+      </div>
+
+      <div class="card">
+        <h3>Thống Kê Đợt</h3>
+        <div class="stat-row"><span class="stat-label">Tổng số ký (Cột E):</span><span class="stat-value" id="st_totalKg">0 kg</span></div>
+        <div class="stat-row"><span class="stat-label">Lần cân:</span><span class="stat-value" id="st_lanCan" style="color: #1877f2;">0 lần</span></div>
+        <div class="stat-row"><span class="stat-label">Tổng số sọt:</span><span class="stat-value" id="st_totalSot">0 sọt</span></div>
+        <div class="stat-row"><span class="stat-label">Tổng số ký thực tế:</span><span class="stat-value" id="st_actualKg" style="color: var(--danger);">0 kg</span></div>
+      </div>
+
+      <div class="card">
+        <h3>Thành Tiền</h3>
+        <div class="stat-row">
+          <span class="stat-label">Đơn giá (đ/kg):</span>
+          <div class="price-display">
+            <span id="st_donGia" style="font-weight: bold; font-size: 16px;">0 đ</span>
+            <button class="btn-edit" onclick="promptEditPrice()">Sửa</button>
+          </div>
+        </div>
+        <div class="stat-row" style="margin-top: 5px;">
+          <span class="stat-label">Tổng tiền:</span>
+          <span class="stat-value" id="st_tongTien" style="color: #e65100; font-size: 20px;">0 đ</span>
+        </div>
+        <button class="btn-main btn-checkout" onclick="openCheckoutModal()">KẾT TOÁN ĐỢT NÀY</button>
+      </div>
+    </div>
+
+    <div class="data-section">
+      <div class="card">
+        <h3>Danh Sách Đã Cân</h3>
+        <table id="dataTable">
+          <thead>
+            <tr><th>Lần cân</th><th>Số sọt</th><th>Số ký</th><th>Tích lũy</th><th>Hành động</th></tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="5" style="text-align: center; color: #888;">Chưa có dữ liệu cân...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="checkoutModal" class="modal-overlay">
+  <div class="modal-content">
+    <h2>Xác Nhận Kết Toán</h2>
+    <div class="modal-summary">
+      <div id="md_tenDot" style="font-weight: bold;"></div>
+      
+      <div style="display: none;">
+        Lần cân: <b id="md_lancan"></b> | Tổng sọt: <b id="md_sot"></b>
+      </div>
+      
+      <div>Ký thực tế: <b id="md_ky"></b> kg</div>
+      <div style="color: #e65100;">Thành tiền: <b id="md_tien"></b> đ</div>
+      <div style="margin-top: 15px;">
+        <label>Thực nhận (đ):</label>
+        <input type="text" inputmode="decimal" id="md_thucNhan" class="input-thucnhan" placeholder="0">
+      </div>
+    </div>
+    
+    <div id="checkoutLoader" class="loading-overlay" style="margin-bottom: 15px; display: none;">Đang lưu sổ sách...</div>
+    
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeCheckoutModal()" id="btnCancelCheckout">Xem Lại</button>
+      <button class="btn-confirm" onclick="confirmCheckout()" id="btnConfirmCheckout">Kết Toán</button>
+    </div>
+  </div>
+</div>

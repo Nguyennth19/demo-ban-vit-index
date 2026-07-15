@@ -1,0 +1,70 @@
+<div id="landingView" class="view-container">
+  
+  <div class="bg-pattern">
+      <div class="glow-orbs">
+          <div class="glow-orb orb-1"></div>
+          <div class="glow-orb orb-2"></div>
+      </div>
+      <div class="floating-icons">
+          <i class="bi bi-clipboard-data floating-icon icon-1"></i>
+          <i class="bi bi-cash-coin floating-icon icon-2"></i>
+          <i class="bi bi-box-seam floating-icon icon-3"></i>
+          <i class="bi bi-graph-up-arrow floating-icon icon-4"></i>
+          <i class="bi bi-calculator floating-icon icon-5"></i>
+          <i class="bi bi-journal-text floating-icon icon-6"></i>
+          <i class="bi bi-truck floating-icon icon-7"></i>
+          <i class="bi bi-feather floating-icon icon-8"></i>
+      </div>
+  </div>
+  
+  <div class="center-wrapper">
+      <div class="auth-card">
+          
+          <div class="auth-header">
+              <h1 class="green">Phù Sa Farm</h1>
+              <p>Bảng nhập liệu xuất vịt chuyên nghiệp</p>
+          </div>
+          
+          <div id="initForm" class="text-center">                    
+              <div class="form-group text-start">
+                  <label class="form-label">Đợt xuất hoặc Thương lái</label>
+                  <div class="input-wrapper">
+                      <input type="text" id="ld_tenDot" list="merchantList" class="form-control text-center" placeholder="Ví dụ: Lái buôn A" autocomplete="off">
+                      <i class="bi bi-person-lines-fill input-icon"></i>
+                      <datalist id="merchantList"></datalist>
+                  </div>
+              </div>
+              
+              <div class="form-group text-start">
+                  <label class="form-label">Đơn giá (đ/kg)</label>
+                  <div class="input-wrapper">
+                      <input type="text" inputmode="decimal" id="ld_donGia" class="form-control text-center" placeholder="Ví dụ: 55.000" autocomplete="off">
+                      <i class="bi bi-cash input-icon"></i>
+                  </div>
+              </div>
+  
+              <button type="button" class="btn-auth btn-green w-100" onclick="startNewBatch()">
+                  <i class="bi bi-play-circle-fill"></i> BẮT ĐẦU NHẬP MỚI
+              </button>
+
+              <hr class="custom-divider">
+
+              <div class="history-action" onclick="loadLastBatch()" id="btnLoadLast">
+                  <span><i class="bi bi-clock-history me-2"></i>Xem lại lần cân gần nhất</span>
+              </div>
+
+              <div class="trust-badges mt-3">
+                  <span class="trust-badge">
+                      <i class="bi bi-shield-check"></i>
+                      SSL Secured
+                  </span>
+                  <span class="trust-badge">
+                      <i class="bi bi-lock-fill"></i>
+                      Encrypted
+                  </span>
+              </div>
+
+          </div>
+      </div>
+  </div>
+</div>
