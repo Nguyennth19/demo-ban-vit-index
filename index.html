@@ -1,159 +1,169 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Hệ Thống Quản Lý Xuất Vịt - Phù Sa Farm</title>
-
-  <meta name="apple-mobile-web-app-title" content="Phù Sa Farm">
-  <meta name="application-name" content="Phù Sa Farm">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#10b981">
-  
-  <link rel="manifest" href='data:application/manifest+json;charset=utf-8,%7B%0A%20%20%22name%22%3A%20%22Ph%C3%B9%20Sa%20Farm%22%2C%0A%20%20%22short_name%22%3A%20%22Ph%C3%B9%20Sa%22%2C%0A%20%20%22start_url%22%3A%20%22.%22%2C%0A%20%20%22display%22%3A%20%22standalone%22%2C%0A%20%20%22background_color%22%3A%20%22%23f0f4f8%22%2C%0A%20%20%22theme_color%22%3A%20%22%2310b981%22%2C%0A%20%20%22icons%22%3A%20%5B%0A%20%20%20%20%7B%0A%20%20%20%20%20%20%22src%22%3A%20%22https%3A%2F%2Flive.staticflickr.com%2F65535%2F55300817978_f977b99993.jpg%22%2C%0A%20%20%20%20%20%20%22sizes%22%3A%20%22192x192%22%2C%0A%20%20%20%20%20%20%22type%22%3A%20%22image%2Fjpeg%22%0A%20%20%20%20%7D%2C%0A%20%20%20%20%7B%0A%20%20%20%20%20%20%22src%22%3A%20%22https%3A%2F%2Flive.staticflickr.com%2F65535%2F55300817978_f977b99993.jpg%22%2C%0A%20%20%20%20%20%20%22sizes%22%3A%20%22512x512%22%2C%0A%20%20%20%20%20%20%22type%22%3A%20%22image%2Fjpeg%22%0A%20%20%20%20%7D%0A%20%20%5D%0A%7D'>
-  
-  <link rel="apple-touch-icon" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
-  <link rel="apple-touch-icon" sizes="152x152" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
-  <link rel="apple-touch-icon" sizes="180x180" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
-  <link rel="apple-touch-icon" sizes="167x167" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
-  
-  <link rel="icon" type="image/jpeg" sizes="192x192" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
-  <link rel="shortcut icon" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
-
-  <style>
-    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #f0f4f8; font-family: 'Inter', sans-serif; }
-    #app-frame { width: 100%; height: 100%; border: none; display: none; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Hệ Thống Quản Lý Xuất Vịt - Phù Sa Farm</title>
     
-    /* --- MÀN HÌNH CHỜ KHỞI ĐỘNG (SPLASH SCREEN TRÀN VIỀN MOBILE) --- */
-    #appSplashScreen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: url('https://live.staticflickr.com/65535/55338870733_2c3694c8f3_b.jpg') no-repeat center center;
-        background-size: cover;
-        z-index: 99999;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        align-items: center;
-        padding-bottom: 80px;
-        box-sizing: border-box;
-        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
-    }
-    .splash-content { width: 100%; display: flex; flex-direction: column; align-items: center; }
-    .splash-logo { text-align: center; margin-bottom: 35vh; }
-    .splash-title {
-        font-size: 38px; font-weight: 800; color: #f59e0b; margin: 0;
-        text-shadow: 0 4px 8px rgba(0,0,0,0.7); letter-spacing: 2px;
-    }
-    .splash-subtitle {
-        font-size: 26px; font-weight: 700; color: #ffffff; margin: 5px 0 0 0;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.7);
-    }
-    .splash-tip {
-        color: #e2e8f0; font-size: 13px; text-align: center; max-width: 85%;
-        margin-bottom: 25px; line-height: 1.5; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-        background: rgba(15, 23, 42, 0.65); padding: 8px 16px; border-radius: 20px;
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-    .progress-container {
-        position: relative; width: 85%; max-width: 350px; height: 22px;
-        background: rgba(0, 0, 0, 0.6); border: 2px solid #64748b;
-        border-radius: 11px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
-    }
-    .progress-bar-fill {
-        width: 0%; height: 100%;
-        background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
-        border-radius: 9px; transition: width 0.1s linear; position: relative;
-    }
-    .progress-bar-fill::after {
-        content: '🦆'; position: absolute; right: -14px; top: 50%;
-        transform: translateY(-50%); font-size: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-    }
-    .progress-text {
-        position: absolute; width: 100%; text-align: center; top: 50%; left: 0;
-        transform: translateY(-50%); color: #ffffff; font-size: 12px; font-weight: 800;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
-    }
-    .splash-version {
-        position: absolute; bottom: 15px; color: #cbd5e1; font-size: 11px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-    }
-  </style>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://live.staticflickr.com/65535/55300817978_f977b99993.jpg">
+
+    <style>
+        /* CSS cho splash screen */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #0f172a; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        
+        /* Iframe hiển thị App Google Script */
+        #appFrame { width: 100%; height: 100%; border: none; display: none; }
+        
+        /* Màn hình chờ (Splash Screen) */
+        #splashScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); background-image: url('https://live.staticflickr.com/65535/55300817978_f977b99993.jpg'); background-size: cover; background-position: center; z-index: 9999; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 80px; box-sizing: border-box; transition: opacity 0.5s ease-out, visibility 0.5s ease-out; }
+        .splash-content { width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .splash-logo { text-align: center; margin-bottom: 25vh; }
+        .splash-title { font-size: 38px; font-weight: 800; color: #f59e0b; margin: 0; text-shadow: 0 4px 8px rgba(0,0,0,0.7); letter-spacing: 2px; text-align: center; }
+        .splash-subtitle { font-size: 26px; font-weight: 700; color: #ffffff; margin: 5px 0 0 0; text-shadow: 0 2px 4px rgba(0,0,0,0.7); }
+        .splash-tip { color: #e2e8f0; font-size: 13px; text-align: center; max-width: 85%; margin-bottom: 25px; line-height: 1.5; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); background: rgba(15, 23, 42, 0.65); padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        
+        .progress-container { position: relative; width: 85%; max-width: 350px; height: 22px; background: rgba(0, 0, 0, 0.6); border: 2px solid #64748b; border-radius: 11px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); overflow: hidden; }
+        .progress-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%); border-radius: 9px; transition: width 0.1s linear; position: relative; }
+        .progress-text { position: absolute; width: 100%; text-align: center; top: 50%; left: 0; transform: translateY(-50%); color: #ffffff; font-size: 12px; font-weight: 800; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9); }
+        .splash-version { position: absolute; bottom: 15px; color: #cbd5e1; font-size: 11px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
+
+        /* Nút thông báo cập nhật phiên bản mới */
+        #updateBanner { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(150px); background: #333; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 15px; z-index: 10000; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); width: 90%; max-width: 400px; justify-content: space-between; font-size: 14px; }
+        #updateBanner.show { transform: translateX(-50%) translateY(0); }
+        #updateBanner button { background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    </style>
 </head>
 <body>
 
-  <div id="appSplashScreen">
-    <div class="splash-content">
-      <div class="splash-logo">
-        <h1 class="splash-title">THỜI ĐẠI</h1>
-        <h2 class="splash-subtitle">PHÙ SA FARM</h2>
-      </div>
-      
-      <div class="splash-tip">
-        Tấn công dữ liệu? Hãy nghĩ kỹ nhé — hệ thống sẽ khóa an toàn nếu có thao tác trùng lặp.
-      </div>
-  
-      <div class="progress-container">
-        <div id="splashProgressBar" class="progress-bar-fill"></div>
-        <span id="splashProgressText" class="progress-text">0%</span>
-      </div>
-      
-      <div class="splash-version">Phiên bản 1.106.9_v2026</div>
+    <div id="splashScreen">
+        <div class="splash-logo">
+            <h1 class="splash-title">PHÙ SA FARM</h1>
+            <h2 class="splash-subtitle">QUẢN LÝ XUẤT VỊT</h2>
+        </div>
+        <div class="splash-content">
+            <div class="splash-tip">🦆 Đang tải dữ liệu, vui lòng chờ trong giây lát...</div>
+            <div class="progress-container">
+                <div class="progress-bar-fill" id="progressBar"></div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+        </div>
+        <div class="splash-version">Phiên bản 2.0.0 (Hỗ trợ Ngoại tuyến)</div>
     </div>
-  </div>
 
-  <iframe id="app-frame" src="https://script.google.com/macros/s/AKfycbyky1uXsec8OTYS8gCCos2O8HfomXdwhlysB9O6M_50elRwD73k3bHMnRkPQPu3IrqG/exec"></iframe>
+    <iframe id="appFrame" allow="geolocation; microphone; camera"></iframe>
 
-  <script>
-    const progressBar = document.getElementById('splashProgressBar');
-    const progressText = document.getElementById('splashProgressText');
-    const splashScreen = document.getElementById('appSplashScreen');
-    const appFrame = document.getElementById('app-frame');
-    
-    let currentPercent = 0;
-    
-    // Tự động chạy giả lập thanh tiến trình lên mức 85% trong lúc chờ GAS tải dữ liệu
-    const interval = setInterval(() => {
-      if (currentPercent < 85) {
-        currentPercent += Math.floor(Math.random() * 3) + 1; 
-        if (currentPercent > 85) currentPercent = 85;
+    <div id="updateBanner">
+        <span>Có phiên bản mới! Cập nhật để trải nghiệm tốt hơn.</span>
+        <button onclick="reloadApp()">Tải lại</button>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 1. CẤU HÌNH ĐƯỜNG DẪN DỰ ÁN TẠI ĐÂY (HẰNG SỐ DUY NHẤT)
+        // Nếu deploy lại dự án trên Google Apps Script, chỉ cần thay Link mới vào đây!
+        // =========================================================================
+        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycb...THAY_LINK_CUA_BAN_VAO_DAY.../exec"; 
         
-        progressBar.style.width = currentPercent + '%';
-        progressText.innerText = currentPercent + '%';
-      }
-    }, 100);
+        // Gắn link vào iframe
+        document.getElementById('appFrame').src = GOOGLE_APP_URL;
 
-    // LẮNG NGHE TÍN HIỆU TỪ GOOGLE APPS SCRIPT
-    window.addEventListener('message', function(event) {
-        // Nếu nhận đúng tín hiệu 'APP_READY' từ App bên trong
-        if (event.data && event.data.type === 'APP_READY') {
-            finishLoading();
+        // =========================================================================
+        // 2. LOGIC MÀN HÌNH CHỜ (SPLASH SCREEN)
+        // =========================================================================
+        let currentPercent = 0;
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const splashScreen = document.getElementById('splashScreen');
+        const appFrame = document.getElementById('appFrame');
+
+        // Giả lập thanh tiến trình lên 85%
+        const loadingInterval = setInterval(() => {
+            if (currentPercent < 85) {
+                currentPercent += Math.floor(Math.random() * 5) + 1;
+                if (currentPercent > 85) currentPercent = 85;
+                progressBar.style.width = currentPercent + '%';
+                progressText.innerText = currentPercent + '%';
+            }
+        }, 150);
+
+        // Đợi tín hiệu từ Google Apps Script báo đã tải xong
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'APP_READY') {
+                clearInterval(loadingInterval);
+                progressBar.style.width = '100%';
+                progressText.innerText = '100%';
+                
+                setTimeout(() => {
+                    splashScreen.style.opacity = '0';
+                    splashScreen.style.visibility = 'hidden';
+                    appFrame.style.display = 'block';
+                    setTimeout(() => splashScreen.remove(), 500);
+                }, 300);
+            }
+        });
+
+        // Nếu mạng yếu, chờ tối đa 12 giây sẽ tự động mở iframe để tránh người dùng bị kẹt
+        setTimeout(() => {
+            if(document.getElementById('splashScreen')) {
+                clearInterval(loadingInterval);
+                progressBar.style.width = '100%';
+                progressText.innerText = '100%';
+                splashScreen.style.opacity = '0';
+                splashScreen.style.visibility = 'hidden';
+                appFrame.style.display = 'block';
+            }
+        }, 12000);
+
+        // =========================================================================
+        // 3. ĐĂNG KÝ SERVICE WORKER (OFFLINE) & THÔNG BÁO CẬP NHẬT
+        // =========================================================================
+        let newWorker;
+        
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('Service Worker đã đăng ký thành công.', reg);
+                    
+                    // Lắng nghe xem có bản cập nhật sw.js mới không
+                    reg.addEventListener('updatefound', () => {
+                        newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            // Khi có code mới được tải về xong và chờ cài đặt
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                showUpdateBanner();
+                            }
+                        });
+                    });
+                }).catch(err => {
+                    console.log('Đăng ký Service Worker thất bại:', err);
+                });
+            });
+
+            // Khi Service Worker cũ nhường quyền cho SW mới, tự động tải lại trang
+            let refreshing;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                window.location.reload();
+                refreshing = true;
+            });
         }
-    });
 
-    // Hàm kết thúc Loading
-    function finishLoading() {
-      clearInterval(interval);
-      
-      // Ép thanh tiến trình nhảy vọt lên 100%
-      progressBar.style.width = '100%';
-      progressText.innerText = '100%';
-      
-      // Chờ 300ms để hiệu ứng thanh kéo dài mượt mà, sau đó ẩn màn hình chờ
-      setTimeout(() => {
-        splashScreen.style.opacity = '0';
-        splashScreen.style.visibility = 'hidden';
-        appFrame.style.display = 'block'; // Mở Iframe lên
-        
-        // Dọn dẹp DOM
-        setTimeout(() => { splashScreen.remove(); }, 500);
-      }, 300);
-    }
-  </script>
+        // Hiện nút Cập nhật
+        function showUpdateBanner() {
+            document.getElementById('updateBanner').classList.add('show');
+        }
+
+        // Bấm nút cập nhật
+        function reloadApp() {
+            if (newWorker) {
+                // Gửi tín hiệu ép SW mới kích hoạt ngay lập tức
+                newWorker.postMessage({ action: 'skipWaiting' });
+            }
+        }
+    </script>
 </body>
 </html>
