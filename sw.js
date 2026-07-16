@@ -1,12 +1,13 @@
 // File: sw.js
 // Service Worker cho Hệ Thống Quản Lý Xuất Vịt - Phù Sa Farm (PWA Offline Shell)
 
-const CACHE_NAME = 'phusa-farm-v2'; // Thay đổi v2 thành v3, v4... khi bạn cập nhật code trên Github
+const CACHE_NAME = 'phusa-farm-v3'; // ĐÃ NÂNG CẤP LÊN V3 ĐỂ ÉP XÓA CACHE CŨ
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  'https://live.staticflickr.com/65535/55300817978_f977b99993.jpg'
+  'https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/logo-phu-sa-farm.jpg',
+  'https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/backgroup-phu-sa-farm.png'
 ];
 
 // Cài đặt Service Worker và Cache các tài nguyên tĩnh
