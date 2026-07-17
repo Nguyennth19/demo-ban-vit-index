@@ -1,198 +1,132 @@
 <script>
-// CẤU HÌNH CÁC KHÓA LƯU TRỮ LOCALSTORAGE
-const STORAGE_KEY = 'PHUSA_STATE_KEY';
-const MERCHANT_KEY = 'PHUSA_MERCHANT_KEY';
-const OFFLINE_QUEUE_KEY = 'PHUSA_OFFLINE_QUEUE';
+// ==========================================
+// TÍCH HỢP BẢO MẬT ĐĂNG NHẬP (LẤY TỪ SHEET ACCOUNT)
+// ==========================================
+const AUTH_KEY = 'PHUSA_AUTH_KEY';
 
-let state = {
-  status: 'LANDING',
-  tenDot: '',
-  donGia: 0,
-  startRow: null,
-  actualKg: 0,
-  tongTien: 0
-};
-
-let isSubmitting = false;
-let isHistoryEditMode = false;
-
-// ---------------- HÀM TIỆN ÍCH KHỞI ĐỘNG ----------------
-function notifyAppReady() {
+function getAuthCache() {
   try {
-    // Gửi một thông điệp an toàn ra ngoài cùng (Lớp vỏ Github)
-    window.top.postMessage({ type: 'APP_READY' }, '*');
-  } catch(e) {
-    console.log("Không thể gửi tín hiệu ra ngoài: ", e);
-  }
-}
-
-// TỐI ƯU UI/UX: Phát ra tiếng Bíp bằng Web Audio API
-function playBeep() {
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    oscillator.type = 'sine'; 
-    oscillator.frequency.value = 850;
-    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-    oscillator.start(audioCtx.currentTime);
-    oscillator.stop(audioCtx.currentTime + 0.1); 
+    const authData = localStorage.getItem(AUTH_KEY);
+    return authData ? JSON.parse(authData) : null;
   } catch (e) {
-    console.log("Audio Feedback không hỗ trợ hoặc bị chặn: ", e);
+    return null;
   }
 }
 
-// TỐI ƯU TIỆN ÍCH: Lưu thương lái vào LocalStorage
-function saveMerchantToHistory(name) {
-  if (!name) return;
-  let merchants = [];
-  try { merchants = JSON.parse(localStorage.getItem(MERCHANT_KEY)) || []; } catch (e) { merchants = []; }
-  merchants = merchants.filter(m => m !== name);
-  merchants.unshift(name);
-  if (merchants.length > 20) merchants = merchants.slice(0, 20);
-  localStorage.setItem(MERCHANT_KEY, JSON.stringify(merchants));
-}
-
-function initMerchantSuggestions() {
-  let merchants = [];
-  try { merchants = JSON.parse(localStorage.getItem(MERCHANT_KEY)) || []; } catch (e) { merchants = []; }
-  const datalist = document.getElementById('merchantList');
-  if (datalist) {
-    datalist.innerHTML = merchants.map(m => `<option value="${m}">`).join('');
-  }
-}
-
-function formatNumber(num) {
-  if (isNaN(num) || num === null || num === "") return "0";
-  return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(Number(num));
-}
-
-function normalizeNumber(val) {
-  if (!val) return "";
-  let n = val.toString().replace(/,/g, '.').replace(/[^0-9.]/g, '');
-  let parts = n.split('.');
-  if (parts.length > 2) n = parts[0] + '.' + parts.slice(1).join('');
-  return n;
-}
-
-function parseCurrency(val) {
-  if (!val) return 0;
-  let n = val.toString().replace(/[^0-9]/g, '');
-  return parseInt(n, 10) || 0;
-}
-
-function formatCurrencyInput(el) {
-  let val = el.value.replace(/[^0-9]/g, '');
-  if (val === '') {
-    el.value = '';
-    return;
-  }
-  el.value = new Intl.NumberFormat('vi-VN').format(parseInt(val, 10));
-}
-
-function isInAppBrowser() {
-  const ua = navigator.userAgent || navigator.vendor || window.opera;
-  return (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || 
-         (ua.indexOf("Zalo") > -1) || (ua.indexOf("Viber") > -1) ||
-         (ua.indexOf("WhatsApp") > -1) || (ua.includes("wv"));
-}
-
-function copyAppLink() {
-  const tempInput = document.createElement("input");
-  tempInput.value = window.location.href;
-  document.body.appendChild(tempInput);
-  tempInput.select();
-  tempInput.setSelectionRange(0, 99999);
-  try {
-    document.execCommand("copy");
-    document.getElementById("copyBtn").innerText = "✅ ĐÃ SAO CHÉP !";
-  } catch (err) {}
-  document.body.removeChild(tempInput);
-}
-
-// KHỞI ĐỘNG ỨNG DỤNG
-window.addEventListener('DOMContentLoaded', () => {
-  const ld_donGia = document.getElementById('ld_donGia');
-  if (ld_donGia) ld_donGia.addEventListener('input', function() { formatCurrencyInput(this); });
-  const md_thucNhan = document.getElementById('md_thucNhan');
-  if (md_thucNhan) md_thucNhan.addEventListener('input', function() { formatCurrencyInput(this); });
-
-  if (isInAppBrowser()) {
-    const warning = document.getElementById('inAppWarning');
-    if (warning) warning.style.display = 'flex';
+// Hàm Xử lý Đăng nhập giao tiếp với Google Apps Script
+function doLogin() {
+  const usernameInput = document.getElementById('login_username').value.trim();
+  const passwordInput = document.getElementById('login_password').value.trim();
+  const errorBox = document.getElementById('loginErrorBox');
+  const btnSubmit = document.getElementById('btnLoginSubmit');
+  
+  if (!usernameInput || !passwordInput) {
+    errorBox.innerText = "Vui lòng nhập đầy đủ Tài khoản và Mật khẩu!";
+    errorBox.style.display = 'block';
     return;
   }
   
-  const savedState = localStorage.getItem(STORAGE_KEY);
-  if (savedState) state = JSON.parse(savedState);
+  // Hiệu ứng Loading
+  btnSubmit.innerText = "Đang kiểm tra...";
+  btnSubmit.disabled = true;
+  errorBox.style.display = 'none';
   
-  initMerchantSuggestions();
-  renderView();
-  
-  // TỐI ƯU NGOẠI TUYẾN: Rà soát đồng bộ hàng chờ offline
-  checkAndSyncOfflineQueue();
-  window.addEventListener('online', checkAndSyncOfflineQueue);
-  
-  if (state.status === 'LANDING' || state.startRow === null) {
-    notifyAppReady();
-  }
-});
+  // Gửi request lên Backend kiểm tra sheet "Account"
+  google.script.run
+    .withSuccessHandler((result) => {
+      btnSubmit.innerText = "Đăng nhập";
+      btnSubmit.disabled = false;
+      
+      if (result.success) {
+        // Lưu thông tin xác thực vào cache
+        const authPayload = { 
+          username: usernameInput, 
+          token: result.token, // server trả về token để dùng cho các API sau
+          timestamp: new Date().getTime() 
+        };
+        localStorage.setItem(AUTH_KEY, JSON.stringify(authPayload));
+        
+        // Điều hướng vào màn hình khởi tạo
+        renderView();
+      } else {
+        // Sai tài khoản / mật khẩu
+        errorBox.innerText = result.message || "Tài khoản hoặc mật khẩu không đúng!";
+        errorBox.style.display = 'block';
+      }
+    })
+    .withFailureHandler((err) => {
+      btnSubmit.innerText = "Đăng nhập";
+      btnSubmit.disabled = false;
+      errorBox.innerText = "Lỗi mạng: " + err.message;
+      errorBox.style.display = 'block';
+    })
+    .verifyLogin(usernameInput, passwordInput);
+}
 
-// ---------------- HÀM SPA - ĐIỀU HƯỚNG 3 MÀN HÌNH ----------------
+// Hàm Xử lý Đăng xuất
+function doLogout() {
+  if (confirm("Bạn có chắc chắn muốn đăng xuất?")) {
+    localStorage.removeItem(AUTH_KEY);
+    
+    // Reset state về mặc định
+    state.status = 'LANDING';
+    saveState();
+    
+    // Clear dữ liệu trên form đăng nhập
+    if(document.getElementById('login_username')) document.getElementById('login_username').value = '';
+    if(document.getElementById('login_password')) document.getElementById('login_password').value = '';
+    if(document.getElementById('loginErrorBox')) document.getElementById('loginErrorBox').style.display = 'none';
+    
+    renderView();
+  }
+}
+
+// CẬP NHẬT HÀM RENDER VIEW: Quản lý Luồng Hiển Thị SPA (Single Page Application)
 function renderView() {
+  const loginView = document.getElementById('loginView');
   const landingView = document.getElementById('landingView');
   const mainView = document.getElementById('mainView');
   const historyView = document.getElementById('historyView');
   
+  const auth = getAuthCache();
+  
+  // NẾU CHƯA ĐĂNG NHẬP (Chặn luồng, buộc hiển thị trang đăng nhập)
+  if (!auth || !auth.token) {
+    if(loginView) loginView.classList.add('active');
+    if(landingView) landingView.classList.remove('active');
+    if(mainView) mainView.classList.remove('active');
+    if(historyView) historyView.classList.remove('active');
+    return;
+  } else {
+    if(loginView) loginView.classList.remove('active');
+  }
+
+  // NẾU ĐÃ ĐĂNG NHẬP: Logic SPA cũ tiếp tục hoạt động
   if (state.status === 'LANDING') {
     if(landingView) landingView.classList.add('active');
     if(mainView) mainView.classList.remove('active');
     if(historyView) historyView.classList.remove('active');
-  } 
-  else if (state.status === 'WEIGHING') {
+  } else if (state.status === 'WEIGHING') {
     if(landingView) landingView.classList.remove('active');
     if(mainView) mainView.classList.add('active');
     if(historyView) historyView.classList.remove('active');
     
-    const headerTenDot = document.getElementById('headerTenDot');
-    if (headerTenDot) headerTenDot.innerText = state.tenDot === '' ? "Đang tải dữ liệu đợt..." : state.tenDot;
-    const st_donGia = document.getElementById('st_donGia');
-    if (st_donGia) st_donGia.innerText = formatNumber(state.donGia) + " đ";
-    
-    calculateMoneyLocal();
-    updateOfflineStatusUI();
-    
+    // Nạp dữ liệu cũ đang dở dang
     if (state.startRow !== null) {
       setLoading(true, 'Đang khôi phục dữ liệu...');
       google.script.run
         .withSuccessHandler((data) => {
           updateMainUI(data);
           setLoading(false);
-          notifyAppReady(); 
-        })
-        .withFailureHandler((err) => {
-          showError("Lỗi khôi phục: " + err.message);
-          setLoading(false);
           notifyAppReady();
         })
-        .getBatchData(state.startRow);
+        .withFailureHandler(handleNetError)
+        .getBatchData(auth, state.startRow); // Gửi kèm token
     }
-  } 
-  else if (state.status === 'HISTORY') {
+  } else if (state.status === 'HISTORY') {
     if(landingView) landingView.classList.remove('active');
     if(mainView) mainView.classList.remove('active');
     if(historyView) historyView.classList.add('active');
-    
-    isHistoryEditMode = false;
-    historyView.classList.remove('edit-mode-active');
-    const btnToggle = document.getElementById('btnHistoryEditToggle');
-    if (btnToggle) { btnToggle.innerText = 'Sửa'; btnToggle.style.color = ''; }
-    
-    const historyHeaderTenDot = document.getElementById('historyHeaderTenDot');
-    if (historyHeaderTenDot) historyHeaderTenDot.innerText = "Đang tải dữ liệu lịch sử...";
     
     if (state.startRow !== null) {
       setHistoryLoading(true, 'Đang tải dữ liệu đợt cũ...');
@@ -207,535 +141,8 @@ function renderView() {
           setHistoryLoading(false);
           notifyAppReady();
         })
-        .getBatchData(state.startRow);
+        .getBatchData(auth, state.startRow); // Gửi kèm token
     }
   }
-}
-
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-// ---------------- KHỞI TẠO ĐỢT / LỊCH SỬ ----------------
-function startNewBatch() {
-  const name = document.getElementById('ld_tenDot').value.trim();
-  const priceStr = document.getElementById('ld_donGia').value;
-  if(!name || !priceStr) return alert("Vui lòng nhập tên Đợt xuất và Đơn giá!");
-  
-  state.tenDot = name;
-  state.donGia = parseCurrency(priceStr);
-  state.status = 'WEIGHING';
-  state.startRow = null;
-  state.actualKg = 0;
-  state.tongTien = 0;
-  
-  document.getElementById('st_totalKg').innerText = "0 kg";
-  document.getElementById('st_lanCan').innerText = "0 lần";
-  document.getElementById('st_totalSot').innerText = "0 sọt";
-  document.getElementById('st_actualKg').innerText = "0 kg";
-  document.getElementById('st_tongTien').innerText = "0 đ";
-  document.getElementById('soSot').value = "2";
-  document.getElementById('tableBody').innerHTML = '<td colspan="5" style="text-align: center; color: #888;">Chưa có dữ liệu cân...</td>';
-  
-  saveState();
-  renderView();
-}
-
-function loadLastBatch() {
-  const btn = document.getElementById('btnLoadLast');
-  btn.innerHTML = 'Đang tìm...';
-  btn.disabled = true;
-  
-  google.script.run
-    .withSuccessHandler((rowNum) => {
-      if (rowNum === null) {
-        alert("Chưa có dữ liệu đợt xuất nào trong máy chủ!");
-        btn.innerHTML = '<i class="bi bi-arrow-counterclockwise me-2"></i>Xem lại lần cân gần nhất';
-        btn.disabled = false;
-      } else {
-        state.status = 'HISTORY';
-        state.startRow = rowNum;
-        state.tenDot = "";
-        saveState();
-        renderView();
-        btn.innerHTML = 'Xem lại lần cân gần nhất';
-        btn.disabled = false;
-      }
-    })
-    .withFailureHandler((err) => {
-      alert("Lỗi tải dữ liệu: " + err.message);
-      btn.innerHTML = 'Xem lại lần cân gần nhất';
-      btn.disabled = false;
-    })
-    .getLastBatchStartRow();
-}
-
-// ---------------- LOGIC CÂN VÀ NHẬP SỐ ----------------
-document.getElementById('soKy').addEventListener("keypress", (e) => {
-  if (e.key === "Enter") doSubmitWeight();
-});
-
-function doSubmitWeight() {
-  if (isSubmitting) return;
-  const rawKy = document.getElementById('soKy').value;
-  const soSotVal = document.getElementById('soSot').value;
-  const cleanKy = normalizeNumber(rawKy);
-  if (!cleanKy) return alert("Vui lòng nhập số ký!");
-  
-  isSubmitting = true;
-  setLoading(true);
-  hideError();
-  
-  // TỐI ƯU NGOẠI TUYẾN: Đẩy vào queue cục bộ nếu mất mạng hoặc queue chưa rỗng
-  const offlineQueue = getOfflineQueue();
-  if (!navigator.onLine || offlineQueue.length > 0) {
-    handleOfflineWeight(cleanKy, soSotVal);
-    return;
-  }
-  
-  // ONLINE BÌNH THƯỜNG
-  if (state.startRow === null) {
-    google.script.run
-      .withSuccessHandler((data) => {
-        state.startRow = data.startRow;
-        saveState();
-        updateMainUI(data);
-        resetInput();
-      })
-      .withFailureHandler(handleNetError)
-      .addFirstData(state.tenDot, state.donGia, cleanKy, soSotVal);
-  } else {
-    google.script.run
-      .withSuccessHandler((data) => {
-        updateMainUI(data);
-        resetInput();
-      })
-      .withFailureHandler(handleNetError)
-      .addNextData(state.startRow, cleanKy, soSotVal);
-  }
-}
-
-// ---------------- CÁC HÀM XỬ LÝ NGOẠI TUYẾN (OFFLINE LOGIC) ----------------
-function getOfflineQueue() {
-  try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)) || []; } catch (e) { return []; }
-}
-function saveOfflineQueue(queue) {
-  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-}
-
-function handleOfflineWeight(soKyStr, soSotStr) {
-  const queue = getOfflineQueue();
-  const newItem = {
-    soKy: parseSafeNumberLocal(soKyStr),
-    soSot: parseInt(soSotStr) || 2,
-    timestamp: new Date().toLocaleTimeString('vi-VN')
-  };
-  queue.push(newItem);
-  saveOfflineQueue(queue);
-  
-  // TÍNH TOÁN VÀ HIỂN THỊ TẠM THỜI TRÊN GIAO DIỆN CỤC BỘ
-  const currentTotalSot = (state.rows ? state.rows.reduce((sum, r) => sum + Number(r.soSot), 0) : 0) + queue.reduce((sum, r) => sum + r.soSot, 0);
-  const currentTotalKg = (state.rows ? state.rows.reduce((sum, r) => sum + Number(r.soKy), 0) : 0) + queue.reduce((sum, r) => sum + r.soKy, 0);
-  const currentLanCan = (state.rows ? state.rows.length : 0) + queue.length;
-  
-  state.actualKg = Number((currentTotalKg - (currentTotalSot * 5)).toFixed(2));
-  saveState();
-  
-  document.getElementById('st_totalKg').innerText = formatNumber(currentTotalKg) + " kg";
-  document.getElementById('st_lanCan').innerText = formatNumber(currentLanCan) + " lần";
-  document.getElementById('st_totalSot').innerText = formatNumber(currentTotalSot) + " sọt";
-  document.getElementById('st_actualKg').innerText = formatNumber(state.actualKg) + " kg";
-  calculateMoneyLocal();
-  
-  const tbody = document.getElementById('tableBody');
-  if (tbody.innerHTML.includes('Chưa có dữ liệu cân')) tbody.innerHTML = '';
-  
-  const newRowHTML = `
-    <tr class="offline-row" style="background-color: #fffbeb;">
-      <td>Tạm lưu</td>
-      <td>${newItem.timestamp} <span class="badge bg-warning text-dark" style="font-size: 10px; padding: 2px 4px; border-radius: 4px; margin-left: 5px;">Chờ mạng</span></td>
-      <td>${newItem.soKy} kg</td>
-      <td>${newItem.soSot} sọt</td>
-      <td style="color: #d97706; font-weight: bold; font-size: 13px;">Chờ đồng bộ</td>
-    </tr>
-  `;
-  tbody.insertAdjacentHTML('afterbegin', newRowHTML);
-  
-  playBeep(); 
-  resetInput();
-  updateOfflineStatusUI();
-}
-
-function parseSafeNumberLocal(val) {
-  if (!val) return 0;
-  let strVal = val.toString().replace(/,/g, '.').replace(/[^0-9.-]/g, '');
-  let num = parseFloat(strVal);
-  return isNaN(num) ? 0 : num;
-}
-
-function updateOfflineStatusUI() {
-  const queue = getOfflineQueue();
-  const alertBox = document.getElementById('errorBox');
-  if (queue.length > 0) {
-    alertBox.innerHTML = `⚠️ <strong>Đang ngoại tuyến!</strong> Đã lưu trữ cục bộ <strong>${queue.length} sọt</strong>. <button class="btn btn-warning btn-sm ms-2" onclick="checkAndSyncOfflineQueue()" style="padding: 2px 8px; font-weight: bold; font-size: 11px;">ĐỒNG BỘ NGAY</button>`;
-    alertBox.style.display = 'block';
-    alertBox.style.backgroundColor = '#fff9db';
-    alertBox.style.color = '#d97706';
-    alertBox.style.border = '1px solid #fef3c7';
-  } else {
-    if (alertBox.style.backgroundColor === 'rgb(255, 249, 219)') alertBox.style.display = 'none';
-  }
-}
-
-// ---------------- HÀM ĐỒNG BỘ NGOẠI TUYẾN KHI CÓ MẠNG ----------------
-function checkAndSyncOfflineQueue() {
-  if (!navigator.onLine) return;
-  const queue = getOfflineQueue();
-  const offlineCheckoutStr = localStorage.getItem('PHUSA_OFFLINE_CHECKOUT');
-  
-  if (queue.length === 0 && !offlineCheckoutStr) return;
-  
-  setLoading(true, "Phát hiện mạng! Đang đẩy dữ liệu ngoại tuyến lên máy chủ...");
-  const offlineCheckout = offlineCheckoutStr ? JSON.parse(offlineCheckoutStr) : null;
-  
-  // SỬA LỖI: Ưu tiên lấy dữ liệu từ gói Backup nếu người dùng đã bấm kết toán và bị Reset màn hình
-  const syncStartRow = offlineCheckout ? offlineCheckout.startRow : state.startRow;
-  const syncTenDot = offlineCheckout ? offlineCheckout.tenDot : state.tenDot;
-  const syncDonGia = offlineCheckout ? offlineCheckout.donGia : state.donGia;
-  
-  google.script.run
-    .withSuccessHandler((data) => {
-      saveOfflineQueue([]); 
-      localStorage.removeItem('PHUSA_OFFLINE_CHECKOUT');
-      
-      // Chỉ vẽ lại bảng nếu người dùng chưa nhảy sang đợt mới
-      if (state.status === 'WEIGHING' && !offlineCheckout) {
-         state.startRow = data.startRow;
-         saveState();
-         updateMainUI(data);
-      }
-      setLoading(false);
-      updateOfflineStatusUI();
-    })
-    .withFailureHandler((err) => {
-      showError("Đồng bộ thất bại: " + err.message);
-      setLoading(false);
-    })
-    // Gửi dữ liệu đã phục hồi trí nhớ lên Server
-    .syncOfflineData(syncStartRow, syncTenDot, syncDonGia, queue, offlineCheckout);
-}
-
-// ---------------- CẬP NHẬT GIAO DIỆN CHÍNH (ONLINE) ----------------
-function updateMainUI(data) {
-  if(!data) return;
-  playBeep(); 
-  
-  if (data.isPartial) {
-    state.actualKg = data.summary.actualKg;
-    saveState(); 
-    
-    document.getElementById('st_totalKg').innerText = formatNumber(data.summary.totalKg) + " kg";
-    document.getElementById('st_lanCan').innerText = formatNumber(data.summary.lanCan) + " lần";
-    document.getElementById('st_totalSot').innerText = formatNumber(data.summary.totalSot) + " sọt";
-    document.getElementById('st_actualKg').innerText = formatNumber(state.actualKg) + " kg";
-    calculateMoneyLocal();
-    
-    const tbody = document.getElementById('tableBody');
-    if (tbody.innerHTML.includes('Chưa có dữ liệu cân')) tbody.innerHTML = '';
-    
-    const row = data.newRow;
-    const newRowHTML = `
-      <tr>
-        <td>${row.lanCan}</td>
-        <td>${row.timestamp || 'Mới'}</td>
-        <td>${formatNumber(row.soKy)} kg</td>
-        <td>${formatNumber(row.soSot)} sọt</td>
-        <td><button class="btn-edit" onclick="doEditWeight(${row.rowNum}, '${row.soKy}', '${row.soSot}')">Sửa</button></td>
-      </tr>
-    `;
-    tbody.insertAdjacentHTML('afterbegin', newRowHTML);
-  } else {
-    state.actualKg = data.summary.actualKg;
-    state.rows = data.rows;
-    saveState();
-    
-    document.getElementById('st_totalKg').innerText = formatNumber(data.summary.totalKg) + " kg";
-    document.getElementById('st_lanCan').innerText = formatNumber(data.summary.lanCan) + " lần";
-    document.getElementById('st_totalSot').innerText = formatNumber(data.summary.totalSot) + " sọt";
-    document.getElementById('st_actualKg').innerText = formatNumber(state.actualKg) + " kg";
-    document.getElementById('st_donGia').innerText = formatNumber(state.donGia) + " đ";
-    calculateMoneyLocal();
-    
-    const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = data.rows.map(row => `
-      <tr>
-        <td>${row.lanCan}</td>
-        <td>${row.timestamp || ''}</td>
-        <td>${formatNumber(row.soKy)} kg</td>
-        <td>${formatNumber(row.soSot)} sọt</td>
-        <td><button class="btn-edit" onclick="doEditWeight(${row.rowNum}, '${row.soKy}', '${row.soSot}')">Sửa</button></td>
-      </tr>
-    `).join('');
-  }
-}
-
-function calculateMoneyLocal() {
-  state.tongTien = Math.round(state.donGia * state.actualKg);
-  const el = document.getElementById('st_tongTien');
-  if (el) el.innerText = formatNumber(state.tongTien) + " đ";
-}
-
-// ---------------- LOGIC CHỈNH SỬA (TRANG CHÍNH) ----------------
-function promptEditPrice() {
-  const rawVal = prompt("Nhập Đơn Giá Mới (đ/kg):", formatNumber(state.donGia));
-  if (rawVal !== null && rawVal !== "") {
-    const cleanVal = parseCurrency(rawVal);
-    if(!isNaN(cleanVal) && cleanVal > 0) {
-      state.donGia = cleanVal;
-      saveState();
-      document.getElementById('st_donGia').innerText = formatNumber(cleanVal) + " đ";
-      calculateMoneyLocal();
-      if(state.startRow !== null) google.script.run.updatePrice(state.startRow, cleanVal);
-    }
-  }
-}
-
-function doEditWeight(rowNum, currentKy, currentSot) {
-  const newKy = prompt("Chỉnh sửa SỐ KÝ (kg) cho lần cân này:", currentKy);
-  if (newKy !== null && newKy !== "") {
-    const cleanKy = normalizeNumber(newKy);
-    if(cleanKy !== "") {
-      const newSot = prompt("Chỉnh sửa SỐ SỌT cho lần cân này:", currentSot);
-      if (newSot !== null && newSot !== "") {
-        setLoading(true);
-        hideError();
-        google.script.run
-          .withSuccessHandler((data) => { updateMainUI(data); setLoading(false); })
-          .withFailureHandler(handleNetError)
-          .editData(rowNum, cleanKy, newSot, state.startRow);
-      }
-    }
-  }
-}
-
-// ---------------- LOGIC KẾT TOÁN ----------------
-function openCheckoutModal() {
-  document.getElementById('md_tenDot').innerText = state.tenDot;
-  document.getElementById('md_lancan').innerText = document.getElementById('st_lanCan').innerText;
-  document.getElementById('md_sot').innerText = document.getElementById('st_totalSot').innerText;
-  document.getElementById('md_ky').innerText = formatNumber(state.actualKg);
-  document.getElementById('md_tien').innerText = formatNumber(state.tongTien);
-  document.getElementById('md_thucNhan').value = formatNumber(state.tongTien);
-  
-  const btnConfirm = document.getElementById('btnConfirmCheckout');
-  if (btnConfirm) btnConfirm.disabled = false;
-  
-  document.getElementById('checkoutModal').style.display = 'flex';
-}
-
-function closeCheckoutModal() {
-  document.getElementById('checkoutModal').style.display = 'none';
-}
-
-function confirmCheckout() {
-  if (state.startRow === null && getOfflineQueue().length === 0) {
-    completeAndReset();
-    return;
-  }
-  
-  const thucNhan = parseCurrency(document.getElementById('md_thucNhan').value);
-  const tongTien = state.tongTien; 
-  
-  const offlineQueue = getOfflineQueue();
-  
-  // XỬ LÝ KHI MẤT MẠNG: Lưu lệnh kết toán VÀ LƯU CẢ THÔNG TIN ĐỢT CÂN vào bộ nhớ tạm
-  if (!navigator.onLine || offlineQueue.length > 0) {
-    localStorage.setItem('PHUSA_OFFLINE_CHECKOUT', JSON.stringify({
-      tongTien: tongTien,
-      thucNhan: thucNhan,
-      tenDot: state.tenDot,     // SỬA LỖI: Ghi nhớ Tên thương lái
-      donGia: state.donGia,     // SỬA LỖI: Ghi nhớ Đơn giá
-      startRow: state.startRow  // SỬA LỖI: Ghi nhớ dòng bắt đầu (nếu trước đó đang có mạng)
-    }));
-    alert("✅ KẾT TOÁN NGOẠI TUYẾN THÀNH CÔNG!\n\nHệ thống đã lưu lại toàn bộ số sọt và tổng tiền vào máy. Dữ liệu sẽ tự động đẩy lên Sheet khi có mạng.");
-    completeAndReset();
-    return;
-  }
-
-  // XỬ LÝ KHI CÓ MẠNG BÌNH THƯỜNG
-  document.getElementById('checkoutLoader').style.display = 'block';
-  document.getElementById('btnCancelCheckout').disabled = true;
-  document.getElementById('btnConfirmCheckout').disabled = true;
-  
-  google.script.run
-    .withSuccessHandler(() => {
-      completeAndReset();
-    })
-    .withFailureHandler((err) => {
-      alert("Lỗi kết toán: " + err.message);
-      document.getElementById('checkoutLoader').style.display = 'none';
-      document.getElementById('btnCancelCheckout').disabled = false;
-      document.getElementById('btnConfirmCheckout').disabled = false;
-    })
-    .checkoutBatch(state.startRow, tongTien, thucNhan);
-}
-
-function completeAndReset() {
-  if (state.tenDot) saveMerchantToHistory(state.tenDot);
-  
-  localStorage.removeItem(STORAGE_KEY);
-  state = { status: 'LANDING', tenDot: '', donGia: 0, startRow: null, actualKg: 0, tongTien: 0 };
-  
-  document.getElementById('tableBody').innerHTML = 'Chưa có dữ liệu cân...';
-  document.getElementById('st_totalKg').innerText = "0 kg";
-  document.getElementById('st_lanCan').innerText = "0 lần";
-  document.getElementById('st_totalSot').innerText = "0 sọt";
-  document.getElementById('st_actualKg').innerText = "0 kg";
-  document.getElementById('st_tongTien').innerText = "0 đ";
-  document.getElementById('st_donGia').innerText = "0 đ";
-  document.getElementById('soSot').value = "2";
-  document.getElementById('ld_tenDot').value = '';
-  document.getElementById('ld_donGia').value = '';
-  document.getElementById('md_thucNhan').value = '';
-  
-  document.getElementById('checkoutLoader').style.display = 'none';
-  document.getElementById('btnCancelCheckout').disabled = false;
-  document.getElementById('btnConfirmCheckout').disabled = false;
-  
-  closeCheckoutModal();
-  initMerchantSuggestions(); 
-  renderView();
-}
-
-function resetInput() {
-  const kyInput = document.getElementById('soKy');
-  kyInput.value = "";
-  setLoading(false);
-  setTimeout(() => { kyInput.focus(); }, 100);
-}
-
-function setLoading(isLoad, msg = 'Đang xử lý...') {
-  const btnSubmit = document.getElementById('btnSubmit');
-  if (btnSubmit) btnSubmit.disabled = isLoad;
-  const loader = document.getElementById('loader');
-  if(loader) { loader.innerText = msg; loader.style.display = isLoad ? 'block' : 'none'; }
-  if (!isLoad) isSubmitting = false;
-}
-
-function handleNetError(err) {
-  if (isSubmitting) {
-    const cleanKy = normalizeNumber(document.getElementById('soKy').value);
-    const soSotVal = document.getElementById('soSot').value;
-    if (cleanKy) {
-      console.log("Rớt mạng đột ngột! Chuyển sọt sang offline queue...");
-      handleOfflineWeight(cleanKy, soSotVal);
-      return;
-    }
-  }
-  showError("Lỗi kết nối: " + err.message);
-  setLoading(false);
-}
-
-function showError(msg) {
-  const box = document.getElementById('errorBox');
-  if (box) {
-    box.innerText = msg; box.style.display = 'block';
-    box.style.backgroundColor = '#ffebee'; box.style.color = '#c62828'; box.style.border = '1px solid #ffcdd2';
-  }
-}
-
-function hideError() {
-  const box = document.getElementById('errorBox');
-  if (box) box.style.display = 'none';
-}
-
-// ---------------- CÁC HÀM XỬ LÝ RIÊNG CHO MÀN HÌNH LỊCH SỬ ----------------
-function toggleHistoryEditMode() {
-  const historyView = document.getElementById('historyView');
-  const btnToggle = document.getElementById('btnHistoryEditToggle');
-  isHistoryEditMode = !isHistoryEditMode; 
-  if (isHistoryEditMode) {
-    historyView.classList.add('edit-mode-active');
-    btnToggle.innerText = 'Xong'; btnToggle.style.color = '#e65100';
-  } else {
-    historyView.classList.remove('edit-mode-active');
-    btnToggle.innerText = 'Sửa'; btnToggle.style.color = '';
-  }
-}
-
-function updateHistoryUI(data) {
-  if(!data) return;
-  state.tenDot = data.tenDot;
-  state.donGia = data.donGia;
-  state.actualKg = data.summary.actualKg;
-  saveState();
-  
-  document.getElementById('historyHeaderTenDot').innerText = state.tenDot;
-  document.getElementById('hs_totalKg').innerText = formatNumber(data.summary.totalKg) + " kg";
-  document.getElementById('hs_lanCan').innerText = formatNumber(data.summary.lanCan) + " lần";
-  document.getElementById('hs_totalSot').innerText = formatNumber(data.summary.totalSot) + " sọt";
-  document.getElementById('hs_actualKg').innerText = formatNumber(state.actualKg) + " kg";
-  document.getElementById('hs_donGia').innerText = formatNumber(state.donGia) + " đ";
-  
-  let lichSuTongTien = Math.round(state.donGia * state.actualKg);
-  document.getElementById('hs_tongTien').innerText = formatNumber(lichSuTongTien) + " đ";
-  
-  const tbody = document.getElementById('historyTableBody');
-  tbody.innerHTML = data.rows.map(row => `
-    <tr>
-      <td>${row.lanCan}</td>
-      <td>${row.timestamp || ''}</td>
-      <td>${formatNumber(row.soKy)} kg</td>
-      <td>${formatNumber(row.soSot)} sọt</td>
-      <td class="history-action-col" style="display: none;">
-        <button class="btn-edit" onclick="doEditWeightInHistory(${row.rowNum}, '${row.soKy}', '${row.soSot}')">Sửa</button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-function doEditWeightInHistory(rowNum, currentKy, currentSot) {
-  const newKy = prompt("Chỉnh sửa SỐ KÝ (kg):", currentKy);
-  if (newKy !== null && newKy !== "") {
-    const cleanKy = normalizeNumber(newKy);
-    if(cleanKy !== "") {
-      const newSot = prompt("Chỉnh sửa SỐ SỌT:", currentSot);
-      if (newSot !== null && newSot !== "") {
-        setHistoryLoading(true); hideHistoryError();
-        google.script.run
-          .withSuccessHandler((data) => { updateHistoryUI(data); setHistoryLoading(false); })
-          .withFailureHandler((err) => { showHistoryError("Lỗi chỉnh sửa: " + err.message); setHistoryLoading(false); })
-          .editData(rowNum, cleanKy, newSot, state.startRow);
-      }
-    }
-  }
-}
-
-function goBackToLanding() {
-  isHistoryEditMode = false; 
-  document.getElementById('historyView').classList.remove('edit-mode-active');
-  const btnToggle = document.getElementById('btnHistoryEditToggle');
-  if (btnToggle) { btnToggle.innerText = 'Sửa'; btnToggle.style.color = ''; }
-  
-  localStorage.removeItem(STORAGE_KEY);
-  state = { status: 'LANDING', tenDot: '', donGia: 0, startRow: null, actualKg: 0, tongTien: 0 };
-  saveState();
-  initMerchantSuggestions(); 
-  renderView();
-}
-
-function setHistoryLoading(isLoad, msg = 'Đang xử lý...') {
-  const loader = document.getElementById('historyLoader');
-  if(loader) { loader.innerText = msg; loader.style.display = isLoad ? 'block' : 'none'; }
-}
-
-function showHistoryError(msg) {
-  const box = document.getElementById('historyErrorBox');
-  if(box) { box.innerText = msg; box.style.display = 'block'; }
-}
-
-function hideHistoryError() {
-  const box = document.getElementById('historyErrorBox');
-  if(box) box.style.display = 'none';
 }
 </script>

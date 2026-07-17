@@ -1,0 +1,53 @@
+<!-- GIAO DIỆN ĐĂNG NHẬP (Tách riêng khỏi Khởi Tạo) -->
+<div id="loginView" class="view-container active">
+  <div class="bg-pattern"></div>
+  <div class="floating-icons">
+    <i class="bi bi-person-circle floating-icon icon-1"></i>
+    <i class="bi bi-lock floating-icon icon-2"></i>
+    <i class="bi bi-shield-lock floating-icon icon-3"></i>
+  </div>
+  <div class="glow-orbs">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+  </div>
+  
+  <div class="center-wrapper">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1>Phù Sa Farm</h1>
+        <p>Đăng nhập hệ thống</p>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Tài khoản</label>
+        <div class="input-wrapper">
+          <input type="text" id="login_username" class="form-control text-center" placeholder="Nhập tài khoản..." autocomplete="off">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Mật khẩu</label>
+        <div class="input-wrapper">
+          <input type="password" id="login_password" class="form-control text-center" placeholder="Nhập mật khẩu..." autocomplete="off">
+        </div>
+      </div>
+      
+      <button type="button" id="btnLoginSubmit" class="btn-auth btn-green w-100" onclick="doLogin()">
+        Đăng nhập
+      </button>
+      
+      <div id="loginErrorBox" class="error-msg" style="display:none; margin-top:15px; color: #ef4444; font-weight: bold; text-align: center;"></div>
+      
+      <hr class="custom-divider">
+      
+      <button type="button" class="history-action w-100" onclick="doLogout()" style="background: none; border: none; color: #ef4444;">
+        Đăng xuất tài khoản
+      </button>
+
+      <div class="trust-badges mt-3">
+        <div class="trust-badge"><i class="bi bi-shield-check"></i> SSL Secured</div>
+        <div class="trust-badge"><i class="bi bi-lock"></i> Encrypted</div>
+      </div>
+    </div>
+  </div>
+</div>
