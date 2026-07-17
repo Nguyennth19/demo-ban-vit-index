@@ -1,18 +1,24 @@
 {
-  "name": "Hệ Thống Quản Lý Xuất Vịt - Phù Sa Farm",
+  "name": "Hệ Thống Quản Lý Xuất Vịt Phù Sa Farm",
   "short_name": "Xuất Vịt PS",
   "start_url": "./index.html",
   "display": "standalone",
+  "background_color": "#10b981",
+  "theme_color": "#10b981",
+  "description": "Ứng dụng chuyên dụng quản lý cân vịt ngoại tuyến - Phù Sa Farm",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/logo-phu-sa-farm.jpg?v=2",
+      "src": "./logo-192.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/logo-phu-sa-farm.jpg?v=2",
+      "src": "./logo-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
