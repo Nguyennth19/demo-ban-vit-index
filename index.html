@@ -36,6 +36,7 @@
     }
 
     /* ----------------- MÀN HÌNH CHỜ KHỞI ĐỘNG (SPLASH SCREEN) ----------------- */
+    /* ----------------- MÀN HÌNH CHỜ KHỞI ĐỘNG (SPLASH SCREEN) ----------------- */
     #splashScreen {
       position: fixed;
       top: 0;
@@ -43,9 +44,9 @@
       width: 100vw;
       height: 100vh;
       /* SỬA LỖI VẤN ĐỀ 2 & YÊU CẦU 1: 
-         - Thay thế URL hình ảnh từ raw.githubusercontent.com bằng ảnh nhúng thẳng Base64
-         - Kết hợp màu gradient chuyển tiếp từ thương hiệu Phù Sa Farm */
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%), url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAD0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==') no-repeat center center;
+         Sử dụng đường dẫn tương đối cục bộ để Service Worker tự động cache,
+         loại bỏ hoàn toàn link URL tuyệt đối từ Github */ 
+      background: url('./background.png') no-repeat center center;
       background-size: cover;
       z-index: 99999;
       display: flex;
@@ -198,7 +199,7 @@
 
   <!-- Iframe bọc ứng dụng Google Apps Script -->
   <iframe id="appFrame" 
-          src="https://script.google.com/macros/s/AKfycbyky1uXsec80TYS8gCCos208HfomXdwhlysB906M_50elRwD73k3bHMnRkPQPu3IrqG/exec" 
+          src="https://script.google.com/macros/s/AKfycbyky1uXsec8OTYS8gCCos2O8HfomXdwhlysB9O6M_50elRwD73k3bHMnRkPQPu3IrqG/exec" 
           allow="geolocation; microphone; camera">
   </iframe>
 
