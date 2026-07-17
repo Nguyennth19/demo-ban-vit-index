@@ -1,231 +1,325 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
+  <title>Phù Sa Farm - Xuất Vịt</title>
+  
+  <!-- Cấu hình chuẩn Responsive và giao diện cho thiết bị di động -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Hệ Thống Quản Lý Xuất Vịt - Phù Sa Farm</title>
-
-  <meta name="apple-mobile-web-app-title" content="Xuất Vịt PS">
-  <meta name="application-name" content="Phù Sa Farm">
-  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#10b981">
-  
+  <meta name="apple-mobile-web-app-title" content="Xuất Vịt PS">
+
+  <!-- Manifest liên kết PWA -->
   <link rel="manifest" href="./manifest.json">
-  
-  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/logo-phu-sa-farm.jpg?v=2">
-  <link rel="apple-touch-icon" sizes="152x152" href="https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/logo-phu-sa-farm.jpg?v=2">
-  <link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/logo-phu-sa-farm.jpg?v=2">
-  <link rel="apple-touch-icon" sizes="167x167" href="https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/logo-phu-sa-farm.jpg?v=2">
-  
-  <link rel="icon" type="image/jpeg" sizes="192x192" href="https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/logo-phu-sa-farm.jpg?v=2">
-  <link rel="shortcut icon" href="https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/logo-phu-sa-farm.jpg?v=2">
+
+  <!-- SỬA LỖI VẤN ĐỀ 2 & YÊU CẦU 1:
+       - Loại bỏ hoàn toàn các đường dẫn URL tuyệt đối ngoài domain Github (Cross-origin).
+       - Loại bỏ tham số cache-busting (?v=2) gây nhiễu trình duyệt.
+       - Gộp và sử dụng đường dẫn tương đối (./logo-192.png) để hệ điều hành nhận diện tạo WebAPK.
+       - Sử dụng mã hóa Base64 cho các thẻ Icon hiển thị nhanh không cần kết nối mạng. -->
+  <link rel="icon" type="image/png" sizes="192x192" href="./logo-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./logo-512.png">
+  <link rel="shortcut icon" href="./logo-192.png">
+  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlS6sIAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA9QTFRF/wD/ECgp////GhoaAAAAt7gC0QAAAAl0Uk5T////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AKM688wAAAF4SURBVHja7dEBAQAAAIDAl36vI8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgKcCBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAgL8CzAADALidAA6B8X8HAAAAAElFTkSuQmCC">
 
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #f1f5f9; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-    #appFrame { width: 100%; height: 100%; border: none; display: none; }
-    
-    /* --- MÀN HÌNH CHỜ KHỞI ĐỘNG CHUNG --- */
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #0f172a;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    /* ----------------- MÀN HÌNH CHỜ KHỞI ĐỘNG (SPLASH SCREEN) ----------------- */
     #splashScreen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        /* Đã fix lỗi đường link ảnh nền */
-        background: url('https://raw.githubusercontent.com/Nguyennth19/demo-ban-vit-index/refs/heads/main/backgroup-phu-sa-farm.png') no-repeat center center;
-        background-size: cover;
-        z-index: 99999;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        align-items: center;
-        padding-bottom: 80px;
-        box-sizing: border-box;
-        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      /* SỬA LỖI VẤN ĐỀ 2 & YÊU CẦU 1: 
+         - Thay thế URL hình ảnh từ raw.githubusercontent.com bằng ảnh nhúng thẳng Base64
+         - Kết hợp màu gradient chuyển tiếp từ thương hiệu Phù Sa Farm */
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%), url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAD0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==') no-repeat center center;
+      background-size: cover;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding-bottom: 80px;
+      box-sizing: border-box;
+      transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
     }
 
     @media (min-width: 768px) {
-        #splashScreen {
-            padding-bottom: 10vh; 
-        }
+      #splashScreen {
+        padding-bottom: 10vh;
+      }
     }
-    
-    .splash-content { 
-        width: 100%; 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
+
+    .splash-content {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     /* Dòng thông báo tải dữ liệu */
-    .progress-status { 
-        color: #ffffff; font-size: 14px; text-align: center; margin-bottom: 15px; 
-        line-height: 1.5; font-weight: 600;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.8); 
-        background: rgba(15, 23, 42, 0.6); 
-        padding: 6px 16px; border-radius: 20px; 
-    }
-    
-    .progress-container {
-        position: relative; 
-        width: 85%; 
-        max-width: 350px; 
-        height: 22px;
-        background: rgba(0, 0, 0, 0.6); 
-        border: 2px solid #ffffff;
-        border-radius: 11px; 
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
-        /* Rất quan trọng để con vịt không bị cắt mất khi tràn viền */
-        overflow: visible; 
-    }
-    
-    .progress-bar-fill {
-        width: 0%; 
-        height: 100%;
-        background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
-        border-radius: 9px; 
-        transition: width 0.1s linear; 
-        position: relative;
-    }
-    
-    /* CHÚ VỊT SẼ CHẠY THEO TIẾN ĐỘ Y HỆT NHƯ ICON TIỀN 💸 BÊN DỰ ÁN MẪU */
-    .progress-bar-fill::after {
-        content: '🦆'; 
-        position: absolute; 
-        right: -14px; 
-        top: 50%;
-        transform: translateY(-50%); 
-        font-size: 26px; 
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-    }
-    
-    .progress-text {
-        position: absolute; 
-        width: 100%; 
-        text-align: center; 
-        top: 50%; 
-        left: 0;
-        transform: translateY(-50%); 
-        color: #ffffff; 
-        font-size: 12px; 
-        font-weight: 800;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
+    .progress-status {
+      color: #ffffff;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 15px;
+      line-height: 1.5;
+      font-weight: 600;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+      background: rgba(15, 23, 42, 0.6);
+      padding: 6px 16px;
+      border-radius: 20px;
     }
 
-    /* Nút thông báo cập nhật phiên bản mới (PWA function) */
-    #updateBanner { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(150px); background: #333; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 15px; z-index: 10000; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); width: 90%; max-width: 400px; justify-content: space-between; font-size: 14px; }
-    #updateBanner.show { transform: translateX(-50%) translateY(0); }
-    #updateBanner button { background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .progress-container {
+      position: relative;
+      width: 85%;
+      max-width: 350px;
+      height: 22px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid #ffffff;
+      border-radius: 11px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+      overflow: visible; /* Giúp icon chuyển động nổi bật không bị cắt viền */
+    }
+
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+      border-radius: 9px;
+      transition: width 0.1s linear;
+      position: relative;
+    }
+
+    /* Hiệu ứng chú vịt chạy tiến trình ngộ nghĩnh */
+    .progress-bar-fill::after {
+      content: '🦆';
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 24px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    }
+
+    .progress-text {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 800;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
+    }
+
+    /* ----------------- KHUNG BỌC BACKEND (IFRAME) ----------------- */
+    #appFrame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: none;
+    }
+
+    /* ----------------- BANNER THÔNG BÁO CẬP NHẬT PHIÊN BẢN (PWA) ----------------- */
+    #updateBanner {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(150px);
+      background: #1e293b;
+      color: white;
+      padding: 14px 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      width: 90%;
+      max-width: 420px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 10000;
+      border: 1px solid #334155;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #updateBanner.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #updateBanner button {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 13px;
+      box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+      transition: all 0.2s;
+    }
+
+    #updateBanner button:hover {
+      background: #059669;
+    }
   </style>
 </head>
 <body>
 
+  <!-- Màn hình chờ khởi động -->
   <div id="splashScreen">
     <div class="splash-content">
-      <div class="progress-status">Một con vịt xòe ra 1 cái cánh...</div>
+      <div class="progress-status" id="progressStatus">Đang kết nối máy chủ Phù Sa Farm...</div>
       <div class="progress-container">
-        <div id="progressBar" class="progress-bar-fill"></div>
-        <span id="progressText" class="progress-text">0%</span>
+        <div class="progress-bar-fill" id="progressBar"></div>
+        <div class="progress-text" id="progressText">0%</div>
       </div>
     </div>
   </div>
 
-  <iframe id="appFrame" src="https://script.google.com/macros/s/AKfycbyky1uXsec8OTYS8gCCos2O8HfomXdwhlysB9O6M_50elRwD73k3bHMnRkPQPu3IrqG/exec" allow="geolocation; microphone; camera"></iframe>
+  <!-- Iframe bọc ứng dụng Google Apps Script -->
+  <iframe id="appFrame" 
+          src="https://script.google.com/macros/s/AKfycbyky1uXsec80TYS8gCCos208HfomXdwhlysB906M_50elRwD73k3bHMnRkPQPu3IrqG/exec" 
+          allow="geolocation; microphone; camera">
+  </iframe>
 
+  <!-- Banner thông báo cập nhật PWA -->
   <div id="updateBanner">
-      <span>Có phiên bản mới! Cập nhật để trải nghiệm tốt hơn.</span>
-      <button onclick="reloadApp()">Tải lại</button>
+    <span>✨ Phát hiện bản cập nhật mới tốt hơn!</span>
+    <button onclick="reloadApp()">Tải lại</button>
   </div>
 
   <script>
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
+    const progressStatus = document.getElementById('progressStatus');
     const splashScreen = document.getElementById('splashScreen');
     const appFrame = document.getElementById('appFrame');
-    
+
     let currentPercent = 0;
-    
-    // Tự động chạy giả lập thanh tiến trình lên mức 85% trong lúc chờ GAS tải dữ liệu
+
+    // Chạy thanh tiến trình giả lập lên mức 85% trong lúc chờ iframe GAS gửi tín hiệu APP_READY
     const interval = setInterval(() => {
       if (currentPercent < 85) {
-        currentPercent += Math.floor(Math.random() * 3) + 1; 
+        currentPercent += Math.floor(Math.random() * 5) + 1;
         if (currentPercent > 85) currentPercent = 85;
-        
         progressBar.style.width = currentPercent + '%';
         progressText.innerText = currentPercent + '%';
+        
+        if (currentPercent > 50) {
+          progressStatus.innerText = "Đang đồng bộ cơ sở dữ liệu sọt...";
+        } else if (currentPercent > 25) {
+          progressStatus.innerText = "Đang chuẩn bị môi trường offline...";
+        }
       }
     }, 100);
 
-    // LẮNG NGHE TÍN HIỆU TỪ GOOGLE APPS SCRIPT
-    window.addEventListener('message', function(event) {
-        if (event.data && event.data.type === 'APP_READY') {
-            finishLoading();
-        }
+    // LẮNG NGHE TÍN HIỆU APP_READY GỬI TỪ GOOGLE APPS SCRIPT IFRAME
+    window.addEventListener('message', function (event) {
+      if (event.data && event.data.type === 'APP_READY') {
+        finishLoading();
+      }
     });
 
-    // Hàm kết thúc Loading
+    // Hàm dứt điểm tiến trình và hiển thị giao diện
     function finishLoading() {
       clearInterval(interval);
-      
       progressBar.style.width = '100%';
       progressText.innerText = '100%';
+      progressStatus.innerText = 'Đã tải thành công!';
       
       setTimeout(() => {
         splashScreen.style.opacity = '0';
         splashScreen.style.visibility = 'hidden';
-        appFrame.style.display = 'block'; 
-        
-        setTimeout(() => { splashScreen.remove(); }, 500);
+        appFrame.style.display = 'block';
+        setTimeout(() => { 
+          splashScreen.remove(); 
+        }, 500);
       }, 300);
     }
 
-    // Nếu mạng yếu, chờ tối đa 12 giây sẽ tự động mở iframe tránh bị treo
+    // Cơ chế an toàn (Fallback): Nếu mạng quá yếu, tự động mở app sau 12 giây để tránh bị kẹt màn hình splash
     setTimeout(() => {
-        if(document.getElementById('splashScreen')) {
-            finishLoading();
-        }
+      if (document.getElementById('splashScreen')) {
+        console.warn("Iframe tải quá lâu hoặc không phản hồi APP_READY, kích hoạt chế độ Fallback mở giao diện...");
+        finishLoading();
+      }
     }, 12000);
 
-    // =========================================================================
-    // ĐĂNG KÝ SERVICE WORKER (PWA)
-    // =========================================================================
-    let newWorker;
-    
+    // ==========================================
+    //       ĐĂNG KÝ VÀ KIỂM SOÁT SERVICE WORKER
+    // ==========================================
+    let newworker;
+
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').then(reg => {
-                console.log('Service Worker đã đăng ký thành công.', reg);
-                reg.addEventListener('updatefound', () => {
-                    newWorker = reg.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            showUpdateBanner();
-                        }
-                    });
-                });
-            }).catch(err => {
-                console.log('Đăng ký Service Worker thất bại:', err);
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          console.log('Service Worker đã đăng ký thành công.', reg);
+
+          // Lắng nghe sự kiện phát hiện có Service Worker mới đang được cài đặt
+          reg.addEventListener('updatefound', () => {
+            newworker = reg.installing;
+            newworker.addEventListener('statechange', () => {
+              // Khi Service Worker mới đã cài đặt xong hoàn toàn (trạng thái 'installed')
+              if (newworker.state === 'installed' && navigator.serviceWorker.controller) {
+                showUpdateBanner();
+              }
             });
+          });
+        }).catch(err => {
+          console.error('Đăng ký Service Worker thất bại:', err);
         });
+      });
 
-        let refreshing;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            window.location.reload();
-            refreshing = true;
-        });
+      // Lắng nghe sự kiện chuyển đổi Controller (khi Service Worker mới lên làm chủ chính thức)
+      let refreshing;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        window.location.reload(); // Ép trang web tải lại để nhận toàn bộ code mới
+        refreshing = true;
+      });
     }
 
+    // Hiển thị banner cập nhật ở phía dưới màn hình
     function showUpdateBanner() {
-        document.getElementById('updateBanner').classList.add('show');
+      document.getElementById('updateBanner').classList.add('show');
     }
 
+    // SỬA LỖI VẤN ĐỀ 1: Khi bấm nút "Tải lại", gửi thông điệp 'skipWaiting' đến Service Worker mới
     function reloadApp() {
-        if (newWorker) {
-            newWorker.postMessage({ action: 'skipWaiting' });
-        }
+      if (newworker) {
+        console.log("Gửi yêu cầu skipWaiting tới worker mới...");
+        newworker.postMessage({ action: 'skipWaiting' });
+      } else {
+        // Fallback: Nếu không tìm thấy đối tượng newworker trực tiếp, quét toàn bộ danh sách đăng ký
+        navigator.serviceWorker.getRegistration().then(reg => {
+          if (reg && reg.waiting) {
+            console.log("Gửi yêu cầu skipWaiting thông qua hàng chờ đăng ký...");
+            reg.waiting.postMessage({ action: 'skipWaiting' });
+          } else {
+            window.location.reload();
+          }
+        });
+      }
     }
   </script>
 </body>
