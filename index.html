@@ -294,20 +294,21 @@
 
     let currentPercent = 0;
 
+    // TỐI ƯU GIAI ĐOẠN 2: Tăng tốc độ vòng lặp và mở rộng trần chặn để đồng bộ mượt với Lazy Loading
     const interval = setInterval(() => {
-      if (currentPercent < 85) {
-        currentPercent += Math.floor(Math.random() * 5) + 1;
-        if (currentPercent > 85) currentPercent = 85;
+      if (currentPercent < 90) {
+        currentPercent += Math.floor(Math.random() * 8) + 2; // Bước nhảy lớn hơn (2% - 9%)
+        if (currentPercent > 90) currentPercent = 90;
         progressBar.style.width = currentPercent + '%';
         progressText.innerText = currentPercent + '%';
         
         if (currentPercent > 50) {
-          progressStatus.innerText = "Đang đồng bộ cơ sở dữ liệu sọt...";
+          progressStatus.innerText = "Một con vịt xòe ra 2 cái cánh...";
         } else if (currentPercent > 25) {
-          progressStatus.innerText = "Đang chuẩn bị môi trường offline...";
+          progressStatus.innerText = "Đang đồng bộ cơ sở dữ liệu Phù Sa Farm...";
         }
       }
-    }, 100);
+    }, 68); // Độ trễ siêu ngắn 30ms
 
     window.addEventListener('message', function (event) {
       if (event.data && event.data.type === 'APP_READY') {
