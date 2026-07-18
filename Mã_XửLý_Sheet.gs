@@ -401,7 +401,11 @@ function getLastBatchStartRow(auth) {
   }
 }
 
-// DYNAMIC ARCHIVING THEO THÁNG (GIAI ĐOẠN 3)
+/**
+ * ===================================================================
+ * DYNAMIC ARCHIVING (THUẬT TOÁN THÔNG MINH - SỬA LỖI XÓA LỐ DÒNG)
+ * ===================================================================
+ */
 function autoArchiveOldBatches() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return; 
@@ -411,10 +415,12 @@ function autoArchiveOldBatches() {
     const lastRow = sourceSheet.getLastRow();
     if (lastRow < 2) return;
 
+    // SỬA LỖI OFF-BY-ONE: Dùng lastRow - 1 để không quét lố dòng trống cuối cùng
     const data = sourceSheet.getRange(2, 1, lastRow - 1, 9).getValues();
     let batches = [];
     let currentBatch = [];
 
+    // Tách thành từng đợt
     for (let i = 0; i < data.length; i++) {
       if (data[i][0] !== "" && currentBatch.length > 0) {
         batches.push(currentBatch);
@@ -424,28 +430,56 @@ function autoArchiveOldBatches() {
     }
     if (currentBatch.length > 0) batches.push(currentBatch);
 
-    const maxKeepBatches = 15; 
-    if (batches.length <= maxKeepBatches) return;
+    // Lọc ra các đợt thỏa mãn 2 điều kiện: Đã chốt tiền + Thuộc tháng cũ
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
 
-    const batchesToKeep = batches.slice(-maxKeepBatches);
-    const batchesToArchive = batches.slice(0, batches.length - maxKeepBatches);
+    let batchesToArchive = [];
+    let batchesToKeep = [];
 
-    let archiveGroups = {};
-    for (let b of batchesToArchive) {
-      const timeStr = b[0][1]; 
-      let monthYear = "Lịch sử Cũ";
+    for (let b of batches) {
+      const firstRow = b[0];
+      const timeStr = firstRow[1]; // Cột B: 17/07/2026 14:30:00
+      const tongTien = firstRow[7]; // Cột H: Tổng tiền
+      const thucNhan = firstRow[8]; // Cột I: Thực nhận
+      
+      let isOldMonth = false;
+      let monthYearStr = "Lịch sử Cũ";
       
       if (timeStr && timeStr.toString().includes('/')) {
         const parts = timeStr.toString().split('/');
         if (parts.length >= 3) {
-          const month = parts[1].padStart(2, '0');
-          const year = parts[2].split(' ')[0];
-          monthYear = `Tháng ${month} - ${year}`;
+          const m = parseInt(parts[1], 10);
+          const y = parseInt(parts[2].split(' ')[0], 10);
+          monthYearStr = `Tháng ${parts[1].padStart(2, '0')} - ${y}`;
+          
+          if (y < currentYear || (y === currentYear && m < currentMonth)) {
+            isOldMonth = true;
+          }
         }
       }
-      
-      if (!archiveGroups[monthYear]) archiveGroups[monthYear] = [];
-      archiveGroups[monthYear].push(b);
+
+      // Điều kiện dọn dẹp: Đã chốt tiền (Cột H hoặc I có dữ liệu) và thuộc tháng cũ
+      const isCheckedOut = (tongTien !== "" && tongTien !== null) || (thucNhan !== "" && thucNhan !== null);
+
+      if (isOldMonth && isCheckedOut) {
+        b.monthYearLabel = monthYearStr; // Gắn nhãn
+        batchesToArchive.push(b);
+      } else {
+        batchesToKeep.push(b); // Các đợt cân dở dang hoặc của tháng hiện tại sẽ giữ lại
+      }
+    }
+
+    // Nếu tháng đó không có gì để archive thì kết thúc, tuyệt đối không tạo Sheet rỗng
+    if (batchesToArchive.length === 0) return;
+
+    // Phân nhóm theo tháng để lưu
+    let archiveGroups = {};
+    for (let b of batchesToArchive) {
+      const label = b.monthYearLabel;
+      if (!archiveGroups[label]) archiveGroups[label] = [];
+      archiveGroups[label].push(b);
     }
 
     for (let sheetName in archiveGroups) {
@@ -459,14 +493,15 @@ function autoArchiveOldBatches() {
       let rowsToWrite = [];
       for (let b of archiveGroups[sheetName]) {
         rowsToWrite = rowsToWrite.concat(b);
-        rowsToWrite.push(["", "", "", "", "", "", "", "", ""]); 
+        rowsToWrite.push(["", "", "", "", "", "", "", "", ""]); // Phân cách đợt
       }
       
       const targetLastRow = targetSheet.getLastRow();
       targetSheet.getRange(targetLastRow + 1, 1, rowsToWrite.length, 9).setValues(rowsToWrite);
     }
 
-    sourceSheet.getRange(2, 1, lastRow, 9).clearContent();
+    // DỌN DẸP SẠCH GỐC (Dùng lastRow - 1) VÀ GHI LẠI BẰNG 1 LỆNH
+    sourceSheet.getRange(2, 1, lastRow - 1, 9).clearContent();
     let keptRows = [];
     for (let b of batchesToKeep) {
       keptRows = keptRows.concat(b);

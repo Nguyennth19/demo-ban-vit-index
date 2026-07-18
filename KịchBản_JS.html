@@ -1,13 +1,104 @@
 <script>
 // ==========================================
-// BỘ HÀM QUẢN LÝ ĐĂNG NHẬP (GIAI ĐOẠN 2)
+// CÁC HÀM TIỆN ÍCH HIỂN THỊ VÀ BẢO VỆ DOM (DOM HELPER)
+// ==========================================
+
+function safeSetText(id, text) {
+  const el = document.getElementById(id);
+  if (el) { 
+    el.innerText = text; 
+  }
+}
+
+function formatNumber(num) {
+  if (isNaN(num)) return "0";
+  return new Intl.NumberFormat('vi-VN').format(num);
+}
+
+function parseCurrency(str) {
+  if (!str) return 0;
+  return Number(str.toString().replace(/[^0-9.-]+/g, ""));
+}
+
+function normalizeNumber(val) {
+  if (!val) return "";
+  let str = val.toString().replace(/,/g, '.').replace(/[^0-9.-]/g, '');
+  let num = parseFloat(str);
+  return isNaN(num) ? "" : num;
+}
+
+function setLoading(isLoading, msg = 'Đang xử lý...') {
+  const loader = document.getElementById('loader');
+  if (loader) {
+    loader.innerText = msg;
+    loader.style.display = isLoading ? 'block' : 'none';
+  }
+}
+
+function showError(msg) {
+  const errBox = document.getElementById('errorBox');
+  if (errBox) { errBox.innerText = msg; errBox.style.display = 'block'; }
+}
+
+function hideError() {
+  const errBox = document.getElementById('errorBox');
+  if (errBox) errBox.style.display = 'none';
+}
+
+function handleNetError(err) {
+  isSubmitting = false;
+  setLoading(false);
+  let msg = err ? err.message : "Lỗi mạng không xác định";
+  if (msg.includes("AUTH_FAILED") || msg.includes("Xác thực")) {
+    doLogout(); 
+  } else {
+    showError("Lỗi mạng: " + msg + ". Sẽ lưu offline tạm thời.");
+  }
+}
+
+function notifyAppReady() {
+  try { window.parent.postMessage({ type: 'APP_READY' }, '*'); } catch(e) {}
+}
+
+function playBeep() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 850;
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    oscillator.start(audioCtx.currentTime);
+    oscillator.stop(audioCtx.currentTime + 0.1);
+  } catch (e) {}
+}
+
+// ==========================================
+// BỘ HÀM QUẢN LÝ ĐĂNG NHẬP VÀ PHIÊN LÀM VIỆC
 // ==========================================
 const AUTH_KEY = 'PHUSA_AUTH_KEY';
 
 function getAuthCache() {
   try {
     const authData = localStorage.getItem(AUTH_KEY);
-    return authData ? JSON.parse(authData) : null;
+    if (!authData) return null;
+    
+    const auth = JSON.parse(authData);
+    const now = new Date();
+    const currentMonthYear = now.getMonth() + '-' + now.getFullYear();
+    
+    if (!auth.monthYear) {
+      auth.monthYear = currentMonthYear;
+      localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+    } else if (auth.monthYear !== currentMonthYear) {
+      localStorage.removeItem(AUTH_KEY);
+      return null;
+    }
+    
+    return auth;
   } catch (e) {
     return null;
   }
@@ -45,7 +136,15 @@ function doLogin() {
         btnSubmit.disabled = false;
       }
       if (result.success) {
-        const authPayload = { username: username, token: result.token, timestamp: new Date().getTime() };
+        const now = new Date();
+        const currentMonthYear = now.getMonth() + '-' + now.getFullYear();
+        
+        const authPayload = { 
+          username: username, 
+          token: result.token, 
+          timestamp: now.getTime(),
+          monthYear: currentMonthYear 
+        };
         localStorage.setItem(AUTH_KEY, JSON.stringify(authPayload));
         renderView();
       } else {
@@ -143,7 +242,7 @@ function updateOfflineStatusUI() {
 }
 
 // ==========================================
-// HÀM ĐIỀU HƯỚNG GIAO DIỆN (CÓ BẢO MẬT)
+// HÀM ĐIỀU HƯỚNG GIAO DIỆN (ĐÃ FIX LỖI TREO BẰNG CẦU CHÌ)
 // ==========================================
 function renderView() {
   const loginView = document.getElementById('loginView');
@@ -153,7 +252,6 @@ function renderView() {
   
   const auth = getAuthCache();
   
-  // Chưa đăng nhập -> Hiện trang Đăng Nhập
   if (!auth || !auth.token) {
     if(loginView) loginView.classList.add('active');
     if(landingView) landingView.classList.remove('active');
@@ -183,7 +281,10 @@ function renderView() {
           setLoading(false);
           notifyAppReady();
         })
-        .withFailureHandler(handleNetError)
+        .withFailureHandler((err) => {
+          handleNetError(err);
+          notifyAppReady();
+        })
         .getBatchData(auth, state.startRow);
     } else {
       notifyAppReady();
@@ -203,81 +304,12 @@ function renderView() {
         })
         .withFailureHandler((err) => {
           showHistoryError("Lỗi tải lịch sử: " + err.message);
-          setHistoryLoading(false);
+          setHistoryLoading(false); 
           notifyAppReady();
         })
         .getBatchData(auth, state.startRow);
     }
   }
-}
-
-// ==========================================
-// CÁC HÀM TIỆN ÍCH HIỂN THỊ
-// ==========================================
-function formatNumber(num) {
-  if (isNaN(num)) return "0";
-  return new Intl.NumberFormat('vi-VN').format(num);
-}
-
-function parseCurrency(str) {
-  if (!str) return 0;
-  return Number(str.toString().replace(/[^0-9.-]+/g, ""));
-}
-
-function normalizeNumber(val) {
-  if (!val) return "";
-  let str = val.toString().replace(/,/g, '.').replace(/[^0-9.-]/g, '');
-  let num = parseFloat(str);
-  return isNaN(num) ? "" : num;
-}
-
-function setLoading(isLoading, msg = 'Đang xử lý...') {
-  const loader = document.getElementById('loader');
-  if (loader) {
-    loader.innerText = msg;
-    loader.style.display = isLoading ? 'block' : 'none';
-  }
-}
-
-function showError(msg) {
-  const errBox = document.getElementById('errorBox');
-  if (errBox) { errBox.innerText = msg; errBox.style.display = 'block'; }
-}
-
-function hideError() {
-  const errBox = document.getElementById('errorBox');
-  if (errBox) errBox.style.display = 'none';
-}
-
-function handleNetError(err) {
-  isSubmitting = false;
-  setLoading(false);
-  let msg = err ? err.message : "Lỗi mạng không xác định";
-  if (msg.includes("AUTH_FAILED") || msg.includes("Xác thực")) {
-    doLogout(); 
-  } else {
-    showError("Lỗi mạng: " + msg + ". Sẽ lưu offline tạm thời.");
-  }
-}
-
-function notifyAppReady() {
-  try { window.parent.postMessage({ type: 'APP_READY' }, '*'); } catch(e) {}
-}
-
-function playBeep() {
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    oscillator.type = 'sine';
-    oscillator.frequency.value = 850;
-    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-    oscillator.start(audioCtx.currentTime);
-    oscillator.stop(audioCtx.currentTime + 0.1);
-  } catch (e) {}
 }
 
 function saveMerchantToHistory(name) {
@@ -327,22 +359,27 @@ function startNewBatch() {
   saveOfflineQueue([]); 
   localStorage.removeItem('PHUSA_OFFLINE_CHECKOUT');
   
-  document.getElementById('st_tenDot').innerText = tenDot;
-  document.getElementById('st_donGia').innerText = formatNumber(donGia) + " đ";
-  document.getElementById('st_lanCan').innerText = "1";
-  document.getElementById('st_totalKg').innerText = "0 kg";
-  document.getElementById('st_actualKg').innerText = "0 kg";
-  document.getElementById('st_totalSot').innerText = "0 sọt";
-  document.getElementById('st_tongTien').innerText = "0 đ";
-  document.getElementById('dataTableBody').innerHTML = '';
+  // Áp dụng bọc an toàn DOM Helper & GIỮ NGUYÊN ID CHUẨN HTML GỐC
+  safeSetText('st_tenDot', tenDot);
+  safeSetText('st_donGia', formatNumber(donGia) + " đ");
+  safeSetText('st_lanCan', "1");
+  safeSetText('st_totalKg', "0 kg");
+  safeSetText('st_actualKg', "0 kg");
+  safeSetText('st_totalSot', "0 sọt");
+  safeSetText('st_tongTien', "0 đ");
+  
+  const tbody = document.getElementById('dataTableBody');
+  if (tbody) tbody.innerHTML = '';
   
   renderView();
 }
 
 function loadLastBatch() {
   const btn = document.getElementById('btnLoadLast');
-  btn.innerHTML = 'Đang tìm...';
-  btn.disabled = true;
+  if(btn) {
+    btn.innerHTML = 'Đang tìm...';
+    btn.disabled = true;
+  }
   
   const auth = getAuthCache();
   google.script.run
@@ -355,13 +392,11 @@ function loadLastBatch() {
          saveState();
          renderView();
        }
-       btn.innerHTML = 'Xem lại lần cân gần nhất';
-       btn.disabled = false;
+       if(btn) { btn.innerHTML = 'Xem lại lần cân gần nhất'; btn.disabled = false; }
     })
     .withFailureHandler((err) => {
        alert("Lỗi tải dữ liệu: " + err.message);
-       btn.innerHTML = 'Xem lại lần cân gần nhất';
-       btn.disabled = false;
+       if(btn) { btn.innerHTML = 'Xem lại lần cân gần nhất'; btn.disabled = false; }
        if (err.message.includes("AUTH_FAILED")) doLogout();
     })
     .getLastBatchStartRow(auth);
@@ -426,85 +461,108 @@ function handleOfflineWeight(soKy, soSot) {
   queue.push(newItem);
   saveOfflineQueue(queue);
   
-  let totalKg = state.startRow ? (parseFloat(document.getElementById('st_totalKg').innerText.replace(/,/g,'')) + currentTotalKg + soKy) : (currentTotalKg + soKy);
-  let totalSot = state.startRow ? (parseInt(document.getElementById('st_totalSot').innerText) + currentTotalSot + parseInt(soSot)) : (currentTotalSot + parseInt(soSot));
+  let totalKgStr = "0";
+  const st_totalKg_El = document.getElementById('st_totalKg');
+  if(st_totalKg_El) totalKgStr = st_totalKg_El.innerText.replace(/,/g,'').replace(/kg/g,'').trim();
+  
+  let totalSotStr = "0";
+  const st_totalSot_El = document.getElementById('st_totalSot');
+  if(st_totalSot_El) totalSotStr = st_totalSot_El.innerText.replace(/sọt/g,'').trim();
+  
+  let totalKg = state.startRow ? (parseFloat(totalKgStr) + currentTotalKg + soKy) : (currentTotalKg + soKy);
+  let totalSot = state.startRow ? (parseInt(totalSotStr) + currentTotalSot + parseInt(soSot)) : (currentTotalSot + parseInt(soSot));
   let actualKg = totalKg - (totalSot * 5);
   
-  document.getElementById('st_lanCan').innerText = lanCan + 1;
-  document.getElementById('st_totalKg').innerText = formatNumber(totalKg) + " kg";
-  document.getElementById('st_totalSot').innerText = totalSot + " sọt";
-  document.getElementById('st_actualKg').innerText = formatNumber(actualKg) + " kg";
+  safeSetText('st_lanCan', lanCan + 1);
+  safeSetText('st_totalKg', formatNumber(totalKg) + " kg");
+  safeSetText('st_totalSot', totalSot + " sọt");
+  safeSetText('st_actualKg', formatNumber(actualKg) + " kg");
   
   state.actualKg = actualKg;
   calculateMoneyLocal();
   
   const tbody = document.getElementById('dataTableBody');
-  const tr = document.createElement('tr');
-  tr.classList.add('offline-row');
-  tr.innerHTML = `
-    <td>${lanCan} <i class="bi bi-cloud-slash text-warning" title="Chưa đồng bộ"></i></td>
-    <td>${soSot}</td>
-    <td><span class="weight-badge">${formatNumber(soKy)}</span></td>
-    <td>${formatNumber(totalKg)}</td>
-    <td>${newItem.timestamp}</td>
-    <td><button class="btn-action-edit" disabled>Sửa</button></td>
-  `;
-  tbody.insertBefore(tr, tbody.firstChild);
+  if (tbody) {
+    const tr = document.createElement('tr');
+    tr.classList.add('offline-row');
+    tr.innerHTML = `
+      <td>${lanCan} <i class="bi bi-cloud-slash text-warning" title="Chưa đồng bộ"></i></td>
+      <td>${soSot}</td>
+      <td><span class="weight-badge">${formatNumber(soKy)}</span></td>
+      <td>${formatNumber(totalKg)}</td>
+      <td>${newItem.timestamp}</td>
+      <td><button class="btn-action-edit" disabled>Sửa</button></td>
+    `;
+    tbody.insertBefore(tr, tbody.firstChild);
+  }
   
   resetInput();
 }
 
+// BẢN VÁ LỖI CẬP NHẬT RỖNG (UNDEFINED FIX) & RESTORE ID GỐC
 function updateMainUI(data) {
   if (!data) return;
-  document.getElementById('st_tenDot').innerText = data.tenDot;
-  document.getElementById('st_donGia').innerText = formatNumber(data.donGia) + " đ";
   
-  state.tenDot = data.tenDot;
-  state.donGia = data.donGia;
+  // CHỈ CẬP NHẬT NẾU MÁY CHỦ THỰC SỰ GỬI DỮ LIỆU ĐÓ VỀ (Ngăn chặn ghi đè undefined)
+  if (data.tenDot !== undefined && data.tenDot !== "") {
+    safeSetText('st_tenDot', data.tenDot); // RESTORE ID GỐC
+    state.tenDot = data.tenDot;
+  }
+  
+  if (data.donGia !== undefined && data.donGia > 0) {
+    safeSetText('st_donGia', formatNumber(data.donGia) + " đ");
+    state.donGia = data.donGia;
+  }
   
   if (data.isPartial && data.newRow) {
-    document.getElementById('st_lanCan').innerText = data.newRow.lanCan + 1;
-    document.getElementById('st_totalKg').innerText = formatNumber(data.summary.totalKg) + " kg";
-    document.getElementById('st_totalSot').innerText = data.summary.totalSot + " sọt";
-    document.getElementById('st_actualKg').innerText = formatNumber(data.summary.actualKg) + " kg";
+    safeSetText('st_lanCan', data.newRow.lanCan + 1);
+    safeSetText('st_totalKg', formatNumber(data.summary.totalKg) + " kg");
+    safeSetText('st_totalSot', data.summary.totalSot + " sọt");
+    safeSetText('st_actualKg', formatNumber(data.summary.actualKg) + " kg");
+    
     state.actualKg = data.summary.actualKg;
-    calculateMoneyLocal();
+    calculateMoneyLocal(); 
     
     const tbody = document.getElementById('dataTableBody');
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${data.newRow.lanCan}</td>
-      <td>${data.newRow.soSot}</td>
-      <td><span class="weight-badge">${formatNumber(data.newRow.soKy)}</span></td>
-      <td>${formatNumber(data.newRow.tichLuy)}</td>
-      <td>${data.newRow.timestamp}</td>
-      <td><button class="btn-action-edit" onclick="doEditWeight(${data.newRow.rowNum}, ${data.newRow.soKy}, ${data.newRow.soSot})">Sửa</button></td>
-    `;
-    tbody.insertBefore(tr, tbody.firstChild);
+    if (tbody) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${data.newRow.lanCan}</td>
+        <td>${data.newRow.soSot}</td>
+        <td><span class="weight-badge">${formatNumber(data.newRow.soKy)}</span></td>
+        <td>${formatNumber(data.newRow.tichLuy)}</td>
+        <td>${data.newRow.timestamp}</td>
+        <td><button class="btn-action-edit" onclick="doEditWeight(${data.newRow.rowNum}, ${data.newRow.soKy}, ${data.newRow.soSot})">Sửa</button></td>
+      `;
+      tbody.insertBefore(tr, tbody.firstChild);
+    }
     playBeep();
   } 
   else if (data.rows) {
-    document.getElementById('st_lanCan').innerText = data.summary.lanCan + 1;
-    document.getElementById('st_totalKg').innerText = formatNumber(data.summary.totalKg) + " kg";
-    document.getElementById('st_totalSot').innerText = data.summary.totalSot + " sọt";
-    document.getElementById('st_actualKg').innerText = formatNumber(data.summary.actualKg) + " kg";
+    safeSetText('st_lanCan', data.summary.lanCan + 1);
+    safeSetText('st_totalKg', formatNumber(data.summary.totalKg) + " kg");
+    safeSetText('st_totalSot', data.summary.totalSot + " sọt");
+    safeSetText('st_actualKg', formatNumber(data.summary.actualKg) + " kg");
+    
     state.actualKg = data.summary.actualKg;
     calculateMoneyLocal();
     
     const tbody = document.getElementById('dataTableBody');
-    tbody.innerHTML = '';
-    data.rows.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.lanCan}</td>
-        <td>${r.soSot}</td>
-        <td><span class="weight-badge">${formatNumber(r.soKy)}</span></td>
-        <td>${formatNumber(r.tichLuy)}</td>
-        <td>${r.timestamp}</td>
-        <td><button class="btn-action-edit" onclick="doEditWeight(${r.rowNum}, ${r.soKy}, ${r.soSot})">Sửa</button></td>
-      `;
-      tbody.appendChild(tr);
-    });
+    if (tbody) {
+      tbody.innerHTML = '';
+      data.rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.lanCan}</td>
+          <td>${r.soSot}</td>
+          <td><span class="weight-badge">${formatNumber(r.soKy)}</span></td>
+          <td>${formatNumber(r.tichLuy)}</td>
+          <td>${r.timestamp}</td>
+          <td><button class="btn-action-edit" onclick="doEditWeight(${r.rowNum}, ${r.soKy}, ${r.soSot})">Sửa</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
   }
 }
 
@@ -512,16 +570,17 @@ function resetInput() {
   isSubmitting = false;
   setLoading(false);
   const inputEl = document.getElementById('soKy');
-  inputEl.value = '';
-  inputEl.focus();
+  if(inputEl) {
+    inputEl.value = '';
+    inputEl.focus();
+  }
 }
 
 function calculateMoneyLocal() {
   let tongTien = Math.round(state.actualKg * state.donGia);
   state.tongTien = tongTien;
   saveState();
-  const el = document.getElementById('st_tongTien');
-  if(el) el.innerText = formatNumber(tongTien) + " đ";
+  safeSetText('st_tongTien', formatNumber(tongTien) + " đ");
 }
 
 // ==========================================
@@ -589,7 +648,7 @@ function promptEditPrice() {
     if (!isNaN(cleanVal) && cleanVal > 0) {
       state.donGia = cleanVal;
       saveState();
-      document.getElementById('st_donGia').innerText = formatNumber(cleanVal) + " đ";
+      safeSetText('st_donGia', formatNumber(cleanVal) + " đ");
       calculateMoneyLocal();
       
       const auth = getAuthCache();
@@ -622,17 +681,25 @@ function doEditWeight(rowNum, currentKy, currentSot) {
 }
 
 function openCheckoutModal() {
-  document.getElementById('md_tenDot').innerText = state.tenDot;
-  document.getElementById('md_tongKg').innerText = formatNumber(state.actualKg) + " kg";
-  document.getElementById('md_tongSot').innerText = document.getElementById('st_totalSot').innerText;
-  document.getElementById('md_donGia').innerText = formatNumber(state.donGia) + " đ";
-  document.getElementById('md_tongTien').innerText = formatNumber(state.tongTien) + " đ";
-  document.getElementById('md_thucNhan').value = formatNumber(state.tongTien);
-  document.getElementById('checkoutModal').style.display = 'flex';
+  safeSetText('md_tenDot', state.tenDot);
+  safeSetText('md_tongKg', formatNumber(state.actualKg) + " kg");
+  
+  const st_totalSot_El = document.getElementById('st_totalSot');
+  safeSetText('md_tongSot', st_totalSot_El ? st_totalSot_El.innerText : "0");
+  
+  safeSetText('md_donGia', formatNumber(state.donGia) + " đ");
+  safeSetText('md_tongTien', formatNumber(state.tongTien) + " đ");
+  
+  const thucNhanEl = document.getElementById('md_thucNhan');
+  if(thucNhanEl) thucNhanEl.value = formatNumber(state.tongTien);
+  
+  const modal = document.getElementById('checkoutModal');
+  if(modal) modal.style.display = 'flex';
 }
 
 function closeCheckoutModal() {
-  document.getElementById('checkoutModal').style.display = 'none';
+  const modal = document.getElementById('checkoutModal');
+  if(modal) modal.style.display = 'none';
 }
 
 function confirmCheckout() {
@@ -641,7 +708,8 @@ function confirmCheckout() {
     return;
   }
   
-  const thucNhan = parseCurrency(document.getElementById('md_thucNhan').value);
+  const thucNhanEl = document.getElementById('md_thucNhan');
+  const thucNhan = thucNhanEl ? parseCurrency(thucNhanEl.value) : state.tongTien;
   const tongTien = state.tongTien;
   const offlineQueue = getOfflineQueue();
   
@@ -695,7 +763,7 @@ function completeAndReset() {
 }
 
 // ==========================================
-// XỬ LÝ LỊCH SỬ (HISTORY)
+// XỬ LÝ LỊCH SỬ (HISTORY) VÀ SỬA LỖI TREO MÀN HÌNH
 // ==========================================
 function setHistoryLoading(isLoad, msg = 'Đang tải...') {
   const loader = document.getElementById('historyLoader');
@@ -714,30 +782,35 @@ function hideHistoryError() {
 
 function updateHistoryUI(data) {
   if (!data) return;
-  document.getElementById('hs_tenDot').innerText = data.tenDot;
-  document.getElementById('hs_donGia').innerText = formatNumber(data.donGia) + " đ";
-  document.getElementById('hs_totalKg').innerText = formatNumber(data.summary.totalKg) + " kg";
-  document.getElementById('hs_totalSot').innerText = data.summary.totalSot + " sọt";
-  document.getElementById('hs_actualKg').innerText = formatNumber(data.summary.actualKg) + " kg";
-  document.getElementById('hs_tongTien').innerText = formatNumber(Math.round(data.summary.actualKg * data.donGia)) + " đ";
+  
+  // RESTORE ID GỐC
+  safeSetText('hs_tenDot', data.tenDot); 
+  safeSetText('hs_donGia', formatNumber(data.donGia) + " đ");
+  safeSetText('hs_totalKg', formatNumber(data.summary.totalKg) + " kg");
+  safeSetText('hs_totalSot', data.summary.totalSot + " sọt");
+  safeSetText('hs_actualKg', formatNumber(data.summary.actualKg) + " kg");
+  safeSetText('hs_tongTien', formatNumber(Math.round(data.summary.actualKg * data.donGia)) + " đ");
   
   const tbody = document.getElementById('historyTableBody');
-  tbody.innerHTML = '';
-  data.rows.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.lanCan}</td>
-      <td>${r.soSot}</td>
-      <td><span class="weight-badge">${formatNumber(r.soKy)}</span></td>
-      <td>${formatNumber(r.tichLuy)}</td>
-      <td>${r.timestamp}</td>
-      <td class="history-action-col" style="display:none;"><button class="btn-action-edit" onclick="doEditWeightInHistory(${r.rowNum}, ${r.soKy}, ${r.soSot})">Sửa</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
+  if (tbody) {
+    tbody.innerHTML = '';
+    data.rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.lanCan}</td>
+        <td>${r.soSot}</td>
+        <td><span class="weight-badge">${formatNumber(r.soKy)}</span></td>
+        <td>${formatNumber(r.tichLuy)}</td>
+        <td>${r.timestamp}</td>
+        <td class="history-action-col" style="display:none;"><button class="btn-action-edit" onclick="doEditWeightInHistory(${r.rowNum}, ${r.soKy}, ${r.soSot})">Sửa</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
   
   if (isHistoryEditMode) {
-    document.getElementById('historyView').classList.add('edit-mode-active');
+    const view = document.getElementById('historyView');
+    if(view) view.classList.add('edit-mode-active');
   }
 }
 
@@ -745,12 +818,15 @@ function toggleHistoryEdit() {
   isHistoryEditMode = !isHistoryEditMode;
   const view = document.getElementById('historyView');
   const btnToggle = document.getElementById('btnHistoryEditToggle');
-  if (isHistoryEditMode) {
-    view.classList.add('edit-mode-active');
-    if(btnToggle) { btnToggle.innerText = 'Khóa'; btnToggle.style.color = '#ef4444'; }
-  } else {
-    view.classList.remove('edit-mode-active');
-    if(btnToggle) { btnToggle.innerText = 'Sửa'; btnToggle.style.color = ''; }
+  
+  if(view) {
+    if (isHistoryEditMode) {
+      view.classList.add('edit-mode-active');
+      if(btnToggle) { btnToggle.innerText = 'Khóa'; btnToggle.style.color = '#ef4444'; }
+    } else {
+      view.classList.remove('edit-mode-active');
+      if(btnToggle) { btnToggle.innerText = 'Sửa'; btnToggle.style.color = ''; }
+    }
   }
 }
 
@@ -779,7 +855,9 @@ function doEditWeightInHistory(rowNum, currentKy, currentSot) {
 
 function goBackToLanding() {
   isHistoryEditMode = false;
-  document.getElementById('historyView').classList.remove('edit-mode-active');
+  const view = document.getElementById('historyView');
+  if(view) view.classList.remove('edit-mode-active');
+  
   const btnToggle = document.getElementById('btnHistoryEditToggle');
   if(btnToggle) { btnToggle.innerText = 'Sửa'; btnToggle.style.color = ''; }
   
