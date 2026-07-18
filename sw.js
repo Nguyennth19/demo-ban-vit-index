@@ -6,7 +6,7 @@
  * hãy thay đổi giá trị CACHE_NAME bên dưới sang định dạng Thời gian (Timestamp).
  * - Định dạng khuyên dùng: 'phusa-farm-YYYYMMDD-HHMM' (Ví dụ: phusa-farm-20260717-0945)
  */
-const CACHE_NAME = 'phusa-farm-20260717-0945'; // Thay đổi từ số thứ tự cũ (v4, v5) sang Timestamp để chống lỗi vòng lặp bộ nhớ
+const CACHE_NAME = 'phusa-farm-20260718-1335'; // Thay đổi từ số thứ tự cũ (v4, v5) sang Timestamp để chống lỗi vòng lặp bộ nhớ
 
 // Các tài nguyên tĩnh cục bộ cần bộ đệm hoạt động ngoại tuyến
 const ASSETS_TO_CACHE = [
