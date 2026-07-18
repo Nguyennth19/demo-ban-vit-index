@@ -10,19 +10,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Xuất Vịt PS">
+  
+  <!-- Sửa đổi: Đồng bộ màu sắc hệ thống (Theme Color) với thanh trạng thái -->
+  <meta name="theme-color" content="#10b981">
 
   <!-- Manifest liên kết PWA -->
   <link rel="manifest" href="./manifest.json">
 
-  <!-- SỬA LỖI VẤN ĐỀ 2 & YÊU CẦU 1:
-       - Loại bỏ hoàn toàn các đường dẫn URL tuyệt đối ngoài domain Github (Cross-origin).
-       - Loại bỏ tham số cache-busting (?v=2) gây nhiễu trình duyệt.
-       - Gộp và sử dụng đường dẫn tương đối (./logo-192.png) để hệ điều hành nhận diện tạo WebAPK.
-       - Sử dụng mã hóa Base64 cho các thẻ Icon hiển thị nhanh không cần kết nối mạng. -->
+  <!-- Biểu tượng ứng dụng -->
   <link rel="icon" type="image/png" sizes="192x192" href="./logo-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="./logo-512.png">
   <link rel="shortcut icon" href="./logo-192.png">
-  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlS6sIAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA9QTFRF/wD/ECgp////GhoaAAAAt7gC0QAAAAl0Uk5T////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AKM688wAAAF4SURBVHja7dEBAQAAAIDAl36vI8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgKcCBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAgL8CzAADALidAA6B8X8HAAAAAElFTkSuQmCC">
+  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlS6sIAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA9QTFRF/wD/ECgp////GhoaAAAAt7gC0QAAAAl0Uk5T////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AKM688wAAAF4SURBVHja7dEBAQAAAIDAl36vI8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgKcCBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAgL8CzAADALidAA6B8X8HAAAAAElFTkSuQmCC">
 
   <style>
     body, html {
@@ -36,16 +35,12 @@
     }
 
     /* ----------------- MÀN HÌNH CHỜ KHỞI ĐỘNG (SPLASH SCREEN) ----------------- */
-    /* ----------------- MÀN HÌNH CHỜ KHỞI ĐỘNG (SPLASH SCREEN) ----------------- */
     #splashScreen {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      /* SỬA LỖI VẤN ĐỀ 2 & YÊU CẦU 1: 
-         Sử dụng đường dẫn tương đối cục bộ để Service Worker tự động cache,
-         loại bỏ hoàn toàn link URL tuyệt đối từ Github */ 
       background: url('./background.png') no-repeat center center;
       background-size: cover;
       z-index: 99999;
@@ -71,7 +66,6 @@
       align-items: center;
     }
 
-    /* Dòng thông báo tải dữ liệu */
     .progress-status {
       color: #ffffff;
       font-size: 14px;
@@ -94,7 +88,7 @@
       border: 2px solid #ffffff;
       border-radius: 11px;
       box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
-      overflow: visible; /* Giúp icon chuyển động nổi bật không bị cắt viền */
+      overflow: visible;
     }
 
     .progress-bar-fill {
@@ -106,7 +100,6 @@
       position: relative;
     }
 
-    /* Hiệu ứng chú vịt chạy tiến trình ngộ nghĩnh */
     .progress-bar-fill::after {
       content: '🦆';
       position: absolute;
@@ -136,7 +129,76 @@
       height: 100%;
       border: none;
       display: none;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out; /* Hiệu ứng mờ dần mềm mại */
     }
+
+    /* ----------------- NÚT CÀI ĐẶT PWA ANDROID ----------------- */
+    .btn-install {
+      position: fixed;
+      top: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 25px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+      z-index: 100000;
+      transition: transform 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
+    }
+    .btn-install:active { transform: translateX(-50%) scale(0.95); }
+    
+    /* ----------------- POPUP HƯỚNG DẪN CÀI ĐẶT IOS ----------------- */
+    .ios-prompt {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.98);
+      color: #1e293b;
+      padding: 15px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+      text-align: center;
+      font-size: 14px;
+      width: 85%;
+      max-width: 320px;
+      z-index: 100000;
+      border: 1px solid #e2e8f0;
+      line-height: 1.6;
+    }
+    .ios-prompt b { color: #10b981; }
+    .ios-prompt .close-ios {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .ios-prompt::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: rgba(255, 255, 255, 0.98) transparent transparent transparent;
+    }
+    .hidden { display: none !important; }
 
     /* ----------------- BANNER THÔNG BÁO CẬP NHẬT PHIÊN BẢN (PWA) ----------------- */
     #updateBanner {
@@ -186,6 +248,16 @@
 </head>
 <body>
 
+  <!-- UI Cài đặt PWA Android -->
+  <button id="btnInstallApp" class="btn-install hidden">📥 Cài đặt Ứng dụng</button>
+
+  <!-- UI Cài đặt PWA iOS -->
+  <div id="iosPrompt" class="ios-prompt hidden">
+    <button class="close-ios" onclick="document.getElementById('iosPrompt').classList.add('hidden')">✕</button>
+    Để cài đặt sử dụng Offline:<br>
+    Nhấn biểu tượng <b>Chia sẻ</b> ở dưới cùng màn hình và chọn <b>"Thêm vào MH chính"</b>.
+  </div>
+
   <!-- Màn hình chờ khởi động -->
   <div id="splashScreen">
     <div class="splash-content">
@@ -197,8 +269,9 @@
     </div>
   </div>
 
-  <!-- Iframe bọc ứng dụng Google Apps Script -->
+  <!-- Iframe bọc ứng dụng Google Apps Script với Sandbox bảo mật cao -->
   <iframe id="appFrame" 
+          sandbox="allow-scripts allow-top-navigation allow-forms allow-popups allow-same-origin"
           src="https://script.google.com/macros/s/AKfycbx73udRmLKZO6SvysxSpthjc9bcInNk7usH4CTNf05dxD_df79KChkh_J7Vyu4m6kOh/exec" 
           allow="geolocation; microphone; camera">
   </iframe>
@@ -210,6 +283,9 @@
   </div>
 
   <script>
+    // ==========================================
+    //       QUẢN LÝ TIẾN TRÌNH KHỞI ĐỘNG (SPLASH)
+    // ==========================================
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     const progressStatus = document.getElementById('progressStatus');
@@ -218,7 +294,6 @@
 
     let currentPercent = 0;
 
-    // Chạy thanh tiến trình giả lập lên mức 85% trong lúc chờ iframe GAS gửi tín hiệu APP_READY
     const interval = setInterval(() => {
       if (currentPercent < 85) {
         currentPercent += Math.floor(Math.random() * 5) + 1;
@@ -234,37 +309,82 @@
       }
     }, 100);
 
-    // LẮNG NGHE TÍN HIỆU APP_READY GỬI TỪ GOOGLE APPS SCRIPT IFRAME
     window.addEventListener('message', function (event) {
       if (event.data && event.data.type === 'APP_READY') {
         finishLoading();
       }
     });
 
-    // Hàm dứt điểm tiến trình và hiển thị giao diện
     function finishLoading() {
       clearInterval(interval);
       progressBar.style.width = '100%';
       progressText.innerText = '100%';
       progressStatus.innerText = 'Đã tải thành công!';
       
+      // Hiệu ứng Fade-out Splash và Fade-in Iframe
       setTimeout(() => {
         splashScreen.style.opacity = '0';
         splashScreen.style.visibility = 'hidden';
+        
         appFrame.style.display = 'block';
+        setTimeout(() => {
+          appFrame.style.opacity = '1';
+        }, 50);
+
         setTimeout(() => { 
           splashScreen.remove(); 
         }, 500);
       }, 300);
     }
 
-    // Cơ chế an toàn (Fallback): Nếu mạng quá yếu, tự động mở app sau 12 giây để tránh bị kẹt màn hình splash
     setTimeout(() => {
       if (document.getElementById('splashScreen')) {
-        console.warn("Iframe tải quá lâu hoặc không phản hồi APP_READY, kích hoạt chế độ Fallback mở giao diện...");
+        console.warn("Iframe tải quá lâu, kích hoạt chế độ Fallback...");
         finishLoading();
       }
     }, 12000);
+
+    // ==========================================
+    //       XỬ LÝ CÀI ĐẶT PWA (ANDROID & IOS)
+    // ==========================================
+    
+    // 1. Dành cho Android (Bắt sự kiện tự động)
+    let deferredPrompt;
+    const btnInstallApp = document.getElementById('btnInstallApp');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btnInstallApp.classList.remove('hidden'); // Hiện nút cài đặt
+    });
+
+    btnInstallApp.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('Nông dân đã chấp nhận cài đặt App');
+        }
+        deferredPrompt = null;
+        btnInstallApp.classList.add('hidden');
+      }
+    });
+
+    // 2. Dành cho iOS (Hướng dẫn thủ công vì Apple không hỗ trợ auto)
+    const iosPrompt = document.getElementById('iosPrompt');
+    const isIos = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      return /iphone|ipad|ipod/.test(userAgent);
+    };
+    const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+
+    if (isIos() && !isInStandaloneMode()) {
+      iosPrompt.classList.remove('hidden');
+      // Tự động ẩn sau 15 giây để không che mất màn hình nếu người dùng không muốn cài
+      setTimeout(() => {
+        iosPrompt.classList.add('hidden');
+      }, 15000);
+    }
 
     // ==========================================
     //       ĐĂNG KÝ VÀ KIỂM SOÁT SERVICE WORKER
@@ -276,11 +396,9 @@
         navigator.serviceWorker.register('./sw.js').then(reg => {
           console.log('Service Worker đã đăng ký thành công.', reg);
 
-          // Lắng nghe sự kiện phát hiện có Service Worker mới đang được cài đặt
           reg.addEventListener('updatefound', () => {
             newworker = reg.installing;
             newworker.addEventListener('statechange', () => {
-              // Khi Service Worker mới đã cài đặt xong hoàn toàn (trạng thái 'installed')
               if (newworker.state === 'installed' && navigator.serviceWorker.controller) {
                 showUpdateBanner();
               }
@@ -291,30 +409,24 @@
         });
       });
 
-      // Lắng nghe sự kiện chuyển đổi Controller (khi Service Worker mới lên làm chủ chính thức)
       let refreshing;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (refreshing) return;
-        window.location.reload(); // Ép trang web tải lại để nhận toàn bộ code mới
+        window.location.reload(); 
         refreshing = true;
       });
     }
 
-    // Hiển thị banner cập nhật ở phía dưới màn hình
     function showUpdateBanner() {
       document.getElementById('updateBanner').classList.add('show');
     }
 
-    // SỬA LỖI VẤN ĐỀ 1: Khi bấm nút "Tải lại", gửi thông điệp 'skipWaiting' đến Service Worker mới
     function reloadApp() {
       if (newworker) {
-        console.log("Gửi yêu cầu skipWaiting tới worker mới...");
         newworker.postMessage({ action: 'skipWaiting' });
       } else {
-        // Fallback: Nếu không tìm thấy đối tượng newworker trực tiếp, quét toàn bộ danh sách đăng ký
         navigator.serviceWorker.getRegistration().then(reg => {
           if (reg && reg.waiting) {
-            console.log("Gửi yêu cầu skipWaiting thông qua hàng chờ đăng ký...");
             reg.waiting.postMessage({ action: 'skipWaiting' });
           } else {
             window.location.reload();
